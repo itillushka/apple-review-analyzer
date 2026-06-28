@@ -51,13 +51,13 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 
 ## Phase 3 — Insights graph (LangGraph) 🔄
 - [x] `insights/local.py` — VADER sentiment + YAKE themes + rule-based advice (offline
-  fallback); junk-theme filtering. Emits the shared `Insights` model. **19 tests green.**
-- [ ] `insights/graph.py` — StateGraph: classify → mine_themes → detect_mismatch →
-      synthesize → critic (loop); conditional backend edge; structured-output retry
-- [ ] `insights/nodes_llm.py` — free OpenRouter models, task-routed
-- [ ] `insights/tracing.py` — Langfuse (env-gated, no-op if unset)
-- [ ] tests (mocked LLM)
-- commit: `feat: local insights backend` (+ LLM/graph commits to follow)
+  fallback); junk-theme filtering. Emits the shared `Insights` model.
+- [x] `insights/llm.py` — **top-ranked OpenRouter models** (classify=Tencent Hy3,
+  synthesize=DeepSeek V4 Flash, critic=MiniMax M2.5), batched classification + theme/recommendation
+  synthesis, robust JSON parse + retry, **Langfuse tracing**, graceful **local fallback**.
+- [x] Real (live) integration test `test_insights_llm.py` — skips without key. **20 tests green.**
+- [ ] `insights/graph.py` — LangGraph orchestration: classify → analyze → **critic loop** (next)
+- commit: `feat: local insights backend` · `feat: LLM insights backend (OpenRouter multi-model)`
 
 ## Phase 3b — Prompt distillation (dev-time) ☐
 - [ ] `scripts/distill_prompts.py` — teacher gold outputs on a fixed sample

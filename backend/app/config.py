@@ -8,6 +8,7 @@ can rely on them without changing the import surface (keeps the prefix stable).
 
 from __future__ import annotations
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,17 +38,27 @@ class Settings(BaseSettings):
         "http://localhost:8100",
     ]
 
-    # --- LLM: OpenRouter (wired in phase 3) ---
+    # --- LLM: OpenRouter ---
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    # Multi-model routing across top-ranked, cheap OpenRouter models from distinct vendors
+    # (per OpenRouter usage rankings, 2026). Verify ids/prices at openrouter.ai/models.
+    model_classify: str = "tencent/hy3-preview"  # #2 by tokens, cheapest
+    model_synthesize: str = "deepseek/deepseek-v4-flash"  # #1 by tokens, 1M ctx
+    model_critic: str = "minimax/minimax-m2.5"  # top-traffic, distinct vendor
 
     # Optional paid escalation at runtime / teacher model for dev-time distillation.
     openai_api_key: str | None = None
 
-    # --- Langfuse (optional LLM tracing, phase 3) ---
+    # --- Langfuse (optional LLM tracing) ---
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
-    langfuse_host: str | None = None
+    # Accept either LANGFUSE_HOST (Langfuse standard) or LANGFUSE_BASE_URL.
+    langfuse_host: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("langfuse_host", "langfuse_base_url"),
+    )
 
 
 # Import-time singleton used across the app.
