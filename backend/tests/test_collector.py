@@ -72,7 +72,7 @@ async def test_collect_basic_sample_and_fields():
     page_map = {("gb", "mostrecent", 1): list(range(1, 51))}
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
-    result = await collect_reviews("1459969523", limit=10, seed=42)
+    result = await collect_reviews("1459969523", limit=10, seed=42, use_cache=False)
 
     assert result.meta.region == "europe"
     assert result.meta.returned == 10
@@ -88,16 +88,16 @@ async def test_collect_basic_sample_and_fields():
 
 @respx.mock
 async def test_collect_deduplicates_across_pages():
-    # Force a second page; page 2 repeats page 1 → duplicates must collapse.
+    # page 1 is short of the limit → page 2 is fetched; overlapping ids must collapse.
     page_map = {
-        ("gb", "mostrecent", 1): list(range(1, 51)),
-        ("gb", "mostrecent", 2): list(range(1, 51)),
+        ("gb", "mostrecent", 1): list(range(1, 31)),   # ids 1..30
+        ("gb", "mostrecent", 2): list(range(20, 50)),  # ids 20..49 (overlap 20..30)
     }
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
-    result = await collect_reviews("1459969523", limit=40, seed=1)
+    result = await collect_reviews("1459969523", limit=40, seed=1, use_cache=False)
 
-    assert result.meta.available == 50  # not 100
+    assert result.meta.available == 49  # union of 1..49, duplicates collapsed
     assert result.meta.returned == 40
 
 
@@ -106,7 +106,7 @@ async def test_fewer_than_requested_sets_warning():
     page_map = {("gb", "mostrecent", 1): [1, 2, 3, 4, 5]}
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
-    result = await collect_reviews("1459969523", limit=100, seed=7)
+    result = await collect_reviews("1459969523", limit=100, seed=7, use_cache=False)
 
     assert result.meta.available == 5
     assert result.meta.returned == 5
@@ -119,7 +119,9 @@ async def test_region_selection_falls_through_storefronts():
     page_map = {("jp", "mostrecent", 1): list(range(1, 51))}
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
-    result = await collect_reviews("1459969523", region="asia", limit=10, seed=3)
+    result = await collect_reviews(
+        "1459969523", region="asia", limit=10, seed=3, use_cache=False
+    )
 
     assert result.meta.region == "asia"
     assert result.meta.countries == ["jp"]
@@ -131,7 +133,7 @@ async def test_no_reviews_raises():
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route({}))
 
     with pytest.raises(NoReviewsError):
-        await collect_reviews("404040404", limit=100)
+        await collect_reviews("404040404", limit=100, use_cache=False)
 
 
 async def test_invalid_app_id_raises():
@@ -142,3 +144,36 @@ async def test_invalid_app_id_raises():
 async def test_invalid_region_raises():
     with pytest.raises(ValueError):
         await collect_reviews("1459969523", region="mars")
+
+
+@respx.mock
+async def test_incremental_topup_fetches_only_the_deficit(monkeypatch, tmp_path):
+    """Second call needing more reviews must NOT re-fetch already-seen pages."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "data_dir", str(tmp_path))  # isolated cache
+
+    calls: list[tuple[str, str, int]] = []
+    page_map = {
+        ("gb", "mostrecent", 1): list(range(1, 6)),    # 5 reviews
+        ("gb", "mostrecent", 2): list(range(6, 11)),   # 5 more
+    }
+
+    def responder(request: httpx.Request) -> httpx.Response:
+        m = URL_RE.search(str(request.url))
+        key = (m["country"], m["sort"], int(m["page"]))
+        calls.append(key)
+        ids = page_map.get(key)
+        return httpx.Response(200, json=_feed(ids) if ids else _empty_feed())
+
+    respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=responder)
+
+    first = await collect_reviews("777", region="europe", limit=5, seed=1)
+    assert first.meta.available == 5
+    page1_calls = calls.count(("gb", "mostrecent", 1))
+
+    # Now ask for more: only the deficit (page 2) should be fetched.
+    second = await collect_reviews("777", region="europe", limit=10, seed=1)
+    assert second.meta.available == 10
+    assert calls.count(("gb", "mostrecent", 1)) == page1_calls  # page 1 not re-fetched
+    assert ("gb", "mostrecent", 2) in calls  # deficit was fetched

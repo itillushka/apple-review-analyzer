@@ -17,7 +17,8 @@ import random
 
 import httpx
 
-from .models import CollectionMeta, CollectResult, Review
+from . import storage
+from .models import CollectionMeta, CollectionState, CollectResult, Review
 
 # 50 reviews/page, pages 1..10 per storefront.
 RSS_URL = (
@@ -138,16 +139,21 @@ async def collect_reviews(
     limit: int = 100,
     seed: int | None = None,
     max_pages: int = MAX_PAGES,
+    use_cache: bool = True,
 ) -> CollectResult:
     """Collect ~``limit`` reviews for ``app_id`` from a region and return a sample.
 
-    Strategy: gather a pool across ``SORT_ORDERS`` and the region's storefronts
-    (iterating further storefronts only while still short), de-duplicate by review
-    id, and sample ``limit`` reviews with a seedable RNG. If fewer than ``limit``
-    exist, all are returned and a warning is attached to the metadata.
+    Collection is **incremental**. Previously fetched reviews and pagination cursors
+    are cached per (app_id, region); on a follow-up that needs more, only the deficit
+    is fetched — each storefront resumes from its cursor and transiently-empty
+    storefronts are re-probed — instead of re-downloading everything. Fetching stops
+    as soon as the pool reaches ``limit`` (extras already on a page are kept for
+    sampling variety). Reviews are de-duplicated by id and sampled with a seedable RNG.
 
     Args:
         region: one of ``europe`` (default), ``asia``, ``africa``.
+        use_cache: persist/reuse collection state for top-up. Disable for stateless
+            one-shot collection (e.g. tests).
 
     Raises:
         InvalidAppIdError: if ``app_id`` is not numeric.
@@ -160,31 +166,26 @@ async def collect_reviews(
             f"Unknown region {region!r}; choose one of {tuple(REGION_STOREFRONTS)}."
         )
 
-    pool: dict[str, Review] = {}
-    contributed: list[str] = []  # storefronts that actually returned reviews
-    target_pool = limit * 2  # over-sample so the random pick is meaningfully random
+    state = (storage.load_state(app_id, region) if use_cache else None) or CollectionState(
+        app_id=app_id, region=region
+    )
+    pool: dict[str, Review] = {r.id: r for r in state.reviews}
+    cursors: dict[str, int] = dict(state.cursors)  # "country|sort" -> next page
+    exhausted: set[str] = set(state.exhausted)
 
-    countries = REGION_STOREFRONTS[region]
-    async with httpx.AsyncClient(headers={"User-Agent": "review-atlas/0.1"}) as client:
-        for ctry in countries:
-            country_added = False
-            for sort in SORT_ORDERS:
-                for page in range(1, max_pages + 1):
-                    reviews = await _fetch_page(client, app_id, ctry, page, sort)
-                    if not reviews:
-                        break  # no more pages for this sort/storefront
-                    for review in reviews:
-                        pool[review.id] = review
-                    country_added = True
-                    if len(pool) >= target_pool:
-                        break
-                if len(pool) >= target_pool:
-                    break
-            if country_added:
-                contributed.append(ctry)
-            # Only reach for further storefronts if we're still short.
-            if len(pool) >= limit:
-                break
+    # Only hit the network if the cache can't already satisfy the request.
+    if len(pool) < limit:
+        await _fill_pool(app_id, region, pool, cursors, exhausted, limit, max_pages)
+        if use_cache:
+            storage.save_state(
+                CollectionState(
+                    app_id=app_id,
+                    region=region,
+                    reviews=list(pool.values()),
+                    cursors=cursors,
+                    exhausted=sorted(exhausted),
+                )
+            )
 
     if not pool:
         raise NoReviewsError(
@@ -192,6 +193,7 @@ async def collect_reviews(
         )
 
     items = list(pool.values())
+    contributed = sorted({r.country for r in items})
     rng = random.Random(seed)
     returned = min(limit, len(items))
     sampled = rng.sample(items, k=returned)
@@ -211,3 +213,40 @@ async def collect_reviews(
         warning=warning,
     )
     return CollectResult(meta=meta, reviews=sampled)
+
+
+async def _fill_pool(
+    app_id: str,
+    region: str,
+    pool: dict[str, Review],
+    cursors: dict[str, int],
+    exhausted: set[str],
+    limit: int,
+    max_pages: int,
+) -> None:
+    """Top up ``pool`` toward ``limit`` in place, resuming from cursors.
+
+    Fetches only the deficit: each (storefront, sort) resumes from its cursor;
+    a storefront that produced data and then ended is marked exhausted and skipped
+    next time; a storefront that is empty right now keeps no cursor, so it is
+    re-probed on a later call (Apple's feeds are intermittently empty).
+    """
+    async with httpx.AsyncClient(headers={"User-Agent": "review-atlas/0.1"}) as client:
+        for country in REGION_STOREFRONTS[region]:
+            for sort in SORT_ORDERS:
+                key = f"{country}|{sort}"
+                if key in exhausted:
+                    continue
+                start = cursors.get(key, 1)
+                for page in range(start, max_pages + 1):
+                    reviews = await _fetch_page(client, app_id, country, page, sort)
+                    if not reviews:
+                        # Real end only if this storefront had produced data before.
+                        if key in cursors:
+                            exhausted.add(key)
+                        break  # transient empty (no cursor) → re-probe next time
+                    cursors[key] = page + 1
+                    for review in reviews:
+                        pool[review.id] = review
+                    if len(pool) >= limit:
+                        return

@@ -31,6 +31,8 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
   to survive Apple's per-storefront empty-feed flakiness; `meta.countries` = real sources.
 - [x] **Translation layer** (`translation.py`): region reviews → English; free no-key Google
   backend now (LLM backend in phase 3); English storefronts passthrough; error-fallback to original.
+- [x] **Incremental top-up** (`storage.py` JSON cache): cursors + exhausted-storefront tracking
+  → a follow-up fetches only the deficit (short by 20 → fetch ~20, not all 100); cache hit = no network.
 - commits: `feat: collect App Store reviews via Apple RSS` · `feat: region-based collection` ·
   `feat: translation layer (multilingual reviews → English)`
 

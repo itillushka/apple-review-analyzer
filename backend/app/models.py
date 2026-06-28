@@ -51,3 +51,20 @@ class CollectResult(BaseModel):
 
     meta: CollectionMeta
     reviews: list[Review]
+
+
+class CollectionState(BaseModel):
+    """Persisted accumulation enabling incremental (top-up) collection.
+
+    Holds every unique review gathered so far for an (app_id, region), plus the
+    pagination cursors and the set of fully-read storefront/sort keys, so a later
+    request only fetches the missing reviews instead of re-fetching everything.
+    """
+
+    app_id: str
+    region: str
+    reviews: list[Review] = Field(default_factory=list)
+    # "country|sort" -> next page number to read (only set once data was seen).
+    cursors: dict[str, int] = Field(default_factory=dict)
+    # "country|sort" keys that returned data and then ended — skip on top-up.
+    exhausted: list[str] = Field(default_factory=list)

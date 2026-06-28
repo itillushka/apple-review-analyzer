@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     app_name: str = "Apple Store Review Analysis API"
     app_version: str = "0.1.0"
     port: int = 8100
+    # Directory for the JSON cache of collection state (incremental top-up).
+    data_dir: str = "data"
     # Origins allowed to call the API from a browser (Vite dev + same-host).
     cors_origins: list[str] = [
         "http://localhost:5173",
