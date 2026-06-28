@@ -124,6 +124,24 @@ class Insights(BaseModel):
     mismatch_examples: list[str] = Field(default_factory=list)  # review ids
 
 
+class AnalysisResult(BaseModel):
+    """Full analysis for an app: collection metadata + rating metrics + insights."""
+
+    app_id: str
+    region: str
+    collected: CollectionMeta
+    metrics: RatingMetrics
+    insights: Insights
+
+
+class CollectRequest(BaseModel):
+    """Body for the POST /collect endpoint."""
+
+    app_id: str
+    region: str = "europe"
+    limit: int = 100
+
+
 class CollectionState(BaseModel):
     """Persisted accumulation enabling incremental (top-up) collection.
 

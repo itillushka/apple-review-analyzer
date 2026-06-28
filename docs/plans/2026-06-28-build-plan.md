@@ -81,10 +81,13 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [x] `model_teacher = gpt-5.5` set for phase 3b. **24 tests green** (live LLM included).
 - commit: `feat: sentiment-derived metrics (emotion, taxonomy, mismatch)`
 
-## Phase 5 — REST API ☐
-- [ ] `app/models.py` (pydantic schemas)
-- [ ] endpoints: `/collect /metrics /insights /analyze /reviews/download /charts /health`
-- [ ] `tests/test_api.py` (happy path + bad id + local-fallback)
+## Phase 5 — REST API ✅
+- [x] `app/service.py` — pipeline orchestration (collect→translate→preprocess→metrics+insights),
+  heavy work off the event loop (`asyncio.to_thread`), full-analysis cache (`storage`).
+- [x] Endpoints: `POST /collect`, `GET /metrics` (no LLM), `GET /insights`, `GET /analyze`
+  (cached), `GET /reviews/download` (json/csv), `/health`, auto-Swagger `/docs`.
+- [x] Domain errors → HTTP (invalid id → 400, bad region → 422, no reviews → 404).
+- [x] `tests/test_api.py` (6 tests, TestClient). **30 tests green.** (`/charts` → Phase 6.)
 - commit: `feat: REST API endpoints`
 
 ## Phase 6 — Visualization ☐

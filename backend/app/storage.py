@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 
 from .config import settings
-from .models import CollectionState
+from .models import AnalysisResult, CollectionState
 
 logger = logging.getLogger(__name__)
 
@@ -42,4 +42,27 @@ def save_state(state: CollectionState) -> None:
     """Persist collection state to the cache directory."""
     _path(state.app_id, state.region).write_text(
         state.model_dump_json(), encoding="utf-8"
+    )
+
+
+def _analysis_path(app_id: str, region: str) -> Path:
+    return _data_dir() / f"{app_id}_{region}_analysis.json"
+
+
+def load_analysis(app_id: str, region: str) -> AnalysisResult | None:
+    """Return a cached analysis result, or ``None`` on a miss / unreadable file."""
+    path = _analysis_path(app_id, region)
+    if not path.exists():
+        return None
+    try:
+        return AnalysisResult.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception as exc:  # corrupt cache → miss
+        logger.warning("Ignoring unreadable analysis cache %s (%s).", path, exc)
+        return None
+
+
+def save_analysis(analysis: AnalysisResult) -> None:
+    """Persist a full analysis result to the cache directory."""
+    _analysis_path(analysis.app_id, analysis.region).write_text(
+        analysis.model_dump_json(), encoding="utf-8"
     )
