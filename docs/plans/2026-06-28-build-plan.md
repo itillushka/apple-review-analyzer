@@ -115,11 +115,13 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [ ] Setup, approach, design decisions, curl examples, report link
 - commit: `docs: complete README`
 
-## Phase 11 — Deploy ☐
-- [ ] `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`
-- [ ] nginx + certbot on personal VPS; live URL
+## Phase 11 — Deploy 🔄
+- [x] `backend/Dockerfile` (uv, multi-stage-ish) + `.dockerignore` — **built & tested**
+  in a container (`/health` 200).
+- [x] `frontend/Dockerfile` + `frontend/nginx.conf` (SPA + `/api/*` proxy) — ready for the frontend.
+- [x] `docker-compose.yml` (api + web + data volume), `deploy/nginx.conf` (host TLS proxy), `DEPLOY.md`.
+- [ ] Actual deploy to personal VPS; live URL — ⛔ needs SSH + subdomain (+ frontend).
 - commit: `chore: docker + deployment config`
-- ⛔ needs SSH + subdomain
 
 ## Phase 12 — Final pass ☐
 - [ ] full test suite green, frontend build, smoke via site + Swagger, polish
