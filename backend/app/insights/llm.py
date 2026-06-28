@@ -12,6 +12,7 @@ import logging
 import os
 import re
 from functools import lru_cache
+from pathlib import Path
 
 from ..config import settings
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
@@ -105,6 +106,25 @@ def _text(review: Review, limit: int = 500) -> str:
     return (review.content_clean or review.content_en or review.content or "")[:limit]
 
 
+# Path to distilled few-shot examples produced by scripts/distill_prompts.py.
+_FEWSHOT_PATH = Path(__file__).parent / "prompts" / "classify_fewshot.json"
+
+
+@lru_cache(maxsize=1)
+def _classify_fewshot() -> str:
+    """Few-shot block distilled from the teacher model (empty if not yet distilled)."""
+    if not _FEWSHOT_PATH.exists():
+        return ""
+    try:
+        examples = json.loads(_FEWSHOT_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    lines = [f'- "{e["text"][:120]}" -> {e["sentiment"]}' for e in examples if e.get("text")]
+    if not lines:
+        return ""
+    return "Labeled examples (text -> sentiment):\n" + "\n".join(lines) + "\n\n"
+
+
 def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
     """Classify each review's sentiment + emotion in batches via the classify model."""
     results: dict[str, tuple[str, str | None]] = {}
@@ -113,7 +133,8 @@ def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
         batch = reviews[start : start + _CLASSIFY_BATCH]
         items = [{"id": r.id, "text": _text(r)} for r in batch]
         user = (
-            "For each review, classify the sentiment (positive, neutral, or negative) and the "
+            _classify_fewshot()  # distilled examples (empty until distillation runs)
+            + "For each review, classify the sentiment (positive, neutral, or negative) and the "
             "dominant emotion (one of: joy, satisfaction, anger, frustration, disappointment, "
             "confusion, neutral).\n"
             f"Reviews (JSON):\n{json.dumps(items, ensure_ascii=False)}\n\n"

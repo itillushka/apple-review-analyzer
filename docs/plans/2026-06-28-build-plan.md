@@ -63,12 +63,13 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
   (teacher for phase 3b). **23 tests green** (live LLM tests included).
 - commit: `feat: local insights backend` · `feat: LLM insights backend` · `feat: LangGraph graph + critic`
 
-## Phase 3b — Prompt distillation (dev-time) ☐
-- [ ] `scripts/distill_prompts.py` — teacher gold outputs on a fixed sample
-- [ ] `app/insights/prompts/*.md` — distilled prompts + few-shots + JSON schema
-- [ ] `backend/evals/` — free-vs-teacher agreement + JSON-validity eval
-- commit: `feat: prompt distillation and insights eval`
-- ⛔ needs paid teacher key
+## Phase 3b — Prompt distillation (dev-time) ✅
+- [x] `scripts/distill_prompts.py` — teacher (gpt-5.5) labels 100 reviews as gold; measures
+  student (`tencent/hy3-preview`) agreement **before vs after** few-shot distillation.
+- [x] `app/insights/prompts/classify_fewshot.json` — distilled few-shots (corrective cases),
+  injected into the runtime classify prompt.
+- [x] `evals/distillation_report.md` — **before 95.0% → after 97.0% (+2.0 pp)** agreement.
+- commit: `feat: prompt distillation with before/after eval`
 
 ## Phase 4 — Sentiment-derived metrics ✅
 - [x] **star↔sentiment mismatch** (`metrics.compute_mismatch`, deterministic) — 4–5★ with
