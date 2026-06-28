@@ -90,11 +90,12 @@ class RatingMetrics(BaseModel):
 
 
 class ReviewSentiment(BaseModel):
-    """Sentiment classification for a single review."""
+    """Sentiment (and emotion) classification for a single review."""
 
     id: str
     sentiment: str  # positive | neutral | negative
     score: float  # signed polarity, roughly -1..1
+    emotion: str | None = None  # joy | satisfaction | anger | frustration | ...
 
 
 class ThemeStat(BaseModel):
@@ -115,6 +116,12 @@ class Insights(BaseModel):
     negative_themes: list[ThemeStat]
     actionable: list[str]  # recommended areas of improvement
     per_review: list[ReviewSentiment] = Field(default_factory=list)
+
+    # Sentiment-derived metrics (phase 4).
+    emotion_distribution: dict[str, int] = Field(default_factory=dict)  # emotion -> count
+    taxonomy: dict[str, int] = Field(default_factory=dict)  # bug/feature_request/ux/pricing/other
+    mismatch_count: int = 0  # reviews whose star rating disagrees with text sentiment
+    mismatch_examples: list[str] = Field(default_factory=list)  # review ids
 
 
 class CollectionState(BaseModel):

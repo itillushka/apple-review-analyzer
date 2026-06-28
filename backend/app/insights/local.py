@@ -13,6 +13,7 @@ import yake
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
+from .derived import assemble_insights, local_emotion, local_taxonomy
 
 # VADER compound-score thresholds for the three-way label.
 _POSITIVE_AT = 0.05
@@ -106,24 +107,28 @@ def compute_local_insights(reviews: list[Review], *, max_themes: int = 8) -> Ins
     per_review: list[ReviewSentiment] = []
     for r in reviews:
         label, score = _classify(analyzer, _text_of(r))
-        per_review.append(ReviewSentiment(id=r.id, sentiment=label, score=round(score, 3)))
+        per_review.append(
+            ReviewSentiment(
+                id=r.id, sentiment=label, score=round(score, 3), emotion=local_emotion(label)
+            )
+        )
 
-    counts = Counter(s.sentiment for s in per_review)
-    sentiment_distribution = {k: counts.get(k, 0) for k in _SENTIMENTS}
-    total = len(per_review) or 1
-    sentiment_pct = {k: round(v / total * 100, 1) for k, v in sentiment_distribution.items()}
-
+    sentiment_pct = {
+        k: round(v / (len(per_review) or 1) * 100, 1)
+        for k, v in Counter(s.sentiment for s in per_review).items()
+    }
     negative_reviews = [
         r for r, s in zip(reviews, per_review) if s.sentiment == "negative"
     ]
     negative_themes = _extract_negative_themes(negative_reviews, max_themes)
     actionable = _recommendations(negative_themes, sentiment_pct)
+    taxonomy = local_taxonomy(negative_reviews)
 
-    return Insights(
+    return assemble_insights(
         backend="local",
-        sentiment_distribution=sentiment_distribution,
-        sentiment_pct=sentiment_pct,
-        negative_themes=negative_themes,
-        actionable=actionable,
+        reviews=reviews,
         per_review=per_review,
+        themes=negative_themes,
+        actionable=actionable,
+        taxonomy=taxonomy,
     )

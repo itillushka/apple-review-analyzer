@@ -11,11 +11,11 @@ import json
 import logging
 import os
 import re
-from collections import Counter
 from functools import lru_cache
 
 from ..config import settings
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
+from .derived import assemble_insights
 from .local import compute_local_insights
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,10 @@ _JSON_BLOCK = re.compile(r"\{.*\}", re.DOTALL)
 _CLASSIFY_BATCH = 25  # reviews per classification call
 _MAX_NEGATIVES = 40  # negative reviews sent to the analyzer
 _SCORE = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}
+_EMOTIONS = (
+    "joy", "satisfaction", "anger", "frustration", "disappointment", "confusion", "neutral",
+)
+_TAXONOMY_KEYS = ("bug", "feature_request", "ux", "pricing", "other")
 
 
 def llm_available() -> bool:
@@ -102,16 +106,18 @@ def _text(review: Review, limit: int = 500) -> str:
 
 
 def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
-    """Classify each review's sentiment in batches via the classify model."""
-    labels: dict[str, str] = {}
-    system = "You are a precise sentiment classifier for app reviews. Output strict JSON only."
+    """Classify each review's sentiment + emotion in batches via the classify model."""
+    results: dict[str, tuple[str, str | None]] = {}
+    system = "You are a precise classifier for app reviews. Output strict JSON only."
     for start in range(0, len(reviews), _CLASSIFY_BATCH):
         batch = reviews[start : start + _CLASSIFY_BATCH]
         items = [{"id": r.id, "text": _text(r)} for r in batch]
         user = (
-            "Classify each review's sentiment as exactly one of: positive, neutral, negative.\n"
+            "For each review, classify the sentiment (positive, neutral, or negative) and the "
+            "dominant emotion (one of: joy, satisfaction, anger, frustration, disappointment, "
+            "confusion, neutral).\n"
             f"Reviews (JSON):\n{json.dumps(items, ensure_ascii=False)}\n\n"
-            'Return JSON: {"results":[{"id":"<id>","sentiment":"positive|neutral|negative"}]}'
+            'Return JSON: {"results":[{"id":"<id>","sentiment":"...","emotion":"..."}]}'
         )
         try:
             data = _chat_json(settings.model_classify, system, user)
@@ -120,23 +126,28 @@ def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
             continue
         for row in data.get("results", []):
             sentiment = str(row.get("sentiment", "")).lower().strip()
+            emotion = str(row.get("emotion", "")).lower().strip()
             if sentiment in _SCORE:
-                labels[str(row.get("id"))] = sentiment
+                results[str(row.get("id"))] = (
+                    sentiment,
+                    emotion if emotion in _EMOTIONS else None,
+                )
 
-    return [
-        ReviewSentiment(
-            id=r.id,
-            sentiment=labels.get(r.id, "neutral"),
-            score=_SCORE[labels.get(r.id, "neutral")],
+    out: list[ReviewSentiment] = []
+    for r in reviews:
+        sentiment, emotion = results.get(r.id, ("neutral", None))
+        out.append(
+            ReviewSentiment(id=r.id, sentiment=sentiment, score=_SCORE[sentiment], emotion=emotion)
         )
-        for r in reviews
-    ]
+    return out
 
 
-def _analyze_negatives(negatives: list[Review]) -> tuple[list[ThemeStat], list[str]]:
-    """Extract negative themes + actionable recommendations via the synthesize model."""
+def _analyze_negatives(
+    negatives: list[Review],
+) -> tuple[list[ThemeStat], list[str], dict[str, int]]:
+    """Extract negative themes + recommendations + a bug/feature/ux/pricing taxonomy."""
     if not negatives:
-        return [], ["No negative reviews to analyze; sentiment is broadly positive."]
+        return [], ["No negative reviews to analyze; sentiment is broadly positive."], {}
 
     sample = negatives[:_MAX_NEGATIVES]
     items = [{"id": r.id, "text": _text(r, 400)} for r in sample]
@@ -146,10 +157,13 @@ def _analyze_negatives(negatives: list[Review]) -> tuple[list[ThemeStat], list[s
     )
     user = (
         f"Here are {len(sample)} negative reviews (JSON):\n{json.dumps(items, ensure_ascii=False)}\n\n"
-        "Identify the top recurring themes (max 6) and concrete, actionable improvements "
-        "(max 5). For each theme, report how many of these reviews mention it.\n"
+        "Provide: (1) the top recurring themes (max 6), each with how many of these reviews "
+        "mention it and a short example quote; (2) concrete actionable improvements (max 5); "
+        "(3) a taxonomy counting how many reviews fall into each of: bug, feature_request, "
+        "ux, pricing, other.\n"
         'Return JSON: {"themes":[{"theme":"<short label>","count":<int>,"example":"<short quote>"}],'
-        '"actionable":["<recommendation>"]}'
+        '"actionable":["<recommendation>"],'
+        '"taxonomy":{"bug":<int>,"feature_request":<int>,"ux":<int>,"pricing":<int>,"other":<int>}}'
     )
     data = _chat_json(settings.model_synthesize, system, user)
 
@@ -173,27 +187,30 @@ def _analyze_negatives(negatives: list[Review]) -> tuple[list[ThemeStat], list[s
             )
         )
     actionable = [str(a).strip() for a in data.get("actionable", []) if str(a).strip()][:6]
-    return themes, actionable
+
+    tax_raw = data.get("taxonomy", {}) or {}
+    taxonomy: dict[str, int] = {}
+    for key in _TAXONOMY_KEYS:
+        try:
+            taxonomy[key] = max(0, int(tax_raw.get(key, 0)))
+        except (TypeError, ValueError):
+            taxonomy[key] = 0
+
+    return themes, actionable, taxonomy
 
 
 def compute_llm_insights(reviews: list[Review]) -> Insights:
-    """Full LLM insights: classify sentiment, then mine themes + recommendations."""
+    """Full LLM insights: classify sentiment+emotion, then mine themes/recommendations/taxonomy."""
     per_review = _classify_sentiment(reviews)
-    counts = Counter(s.sentiment for s in per_review)
-    distribution = {k: counts.get(k, 0) for k in ("positive", "neutral", "negative")}
-    total = len(per_review) or 1
-    distribution_pct = {k: round(v / total * 100, 1) for k, v in distribution.items()}
-
     negatives = [r for r, s in zip(reviews, per_review) if s.sentiment == "negative"]
-    themes, actionable = _analyze_negatives(negatives)
-
-    return Insights(
+    themes, actionable, taxonomy = _analyze_negatives(negatives)
+    return assemble_insights(
         backend="llm",
-        sentiment_distribution=distribution,
-        sentiment_pct=distribution_pct,
-        negative_themes=themes,
-        actionable=actionable,
+        reviews=reviews,
         per_review=per_review,
+        themes=themes,
+        actionable=actionable,
+        taxonomy=taxonomy,
     )
 
 

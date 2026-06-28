@@ -28,6 +28,10 @@ def test_local_insights_sentiment_themes_and_advice():
     assert ins.actionable  # non-empty recommendations
     themes_text = " ".join(t.theme.lower() for t in ins.negative_themes)
     assert any(word in themes_text for word in ("billing", "subscription", "scam"))
+    # Phase 4 sentiment-derived metrics are populated by the local backend too.
+    assert ins.emotion_distribution  # sentiment mapped to coarse emotions
+    assert sum(ins.taxonomy.values()) >= 1  # negatives bucketed into the taxonomy
+    assert ins.mismatch_count >= 0
 
 
 def test_local_insights_all_positive_has_no_negative_themes():

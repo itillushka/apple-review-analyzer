@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 
-from .models import MonthStat, RatingMetrics, Review, VersionStat
+from .models import MonthStat, RatingMetrics, Review, ReviewSentiment, VersionStat
 
 
 def _mean(values: list[int]) -> float:
@@ -19,6 +19,28 @@ def _mean(values: list[int]) -> float:
 def _version_key(version: str) -> tuple[int, ...]:
     """Sort key that orders dotted versions numerically (6.9.0 < 6.36.0)."""
     return tuple(int(p) if p.isdigit() else 0 for p in version.split("."))
+
+
+def compute_mismatch(
+    reviews: list[Review], sentiments: list[ReviewSentiment]
+) -> tuple[int, list[str]]:
+    """Count reviews whose star rating disagrees with their text sentiment.
+
+    A mismatch is a high rating (4–5★) with negative text, or a low rating (1–2★)
+    with positive text — useful for catching sarcasm, mis-taps, or off-topic praise.
+    Returns ``(count, example_ids)``.
+    """
+    by_id = {s.id: s.sentiment for s in sentiments}
+    examples: list[str] = []
+    for r in reviews:
+        sentiment = by_id.get(r.id)
+        if sentiment is None:
+            continue
+        if (r.rating >= 4 and sentiment == "negative") or (
+            r.rating <= 2 and sentiment == "positive"
+        ):
+            examples.append(r.id)
+    return len(examples), examples
 
 
 def compute_rating_metrics(reviews: list[Review]) -> RatingMetrics:

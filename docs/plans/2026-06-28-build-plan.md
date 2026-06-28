@@ -70,9 +70,15 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - commit: `feat: prompt distillation and insights eval`
 - ⛔ needs paid teacher key
 
-## Phase 4 — Sentiment-derived metrics ☐
-- [ ] mismatch, emotion breakdown, bug/feature/UX/pricing taxonomy, ranked themes
-- commit: `feat: sentiment-derived metrics`
+## Phase 4 — Sentiment-derived metrics ✅
+- [x] **star↔sentiment mismatch** (`metrics.compute_mismatch`, deterministic) — 4–5★ with
+  negative text or 1–2★ with positive text.
+- [x] **emotion breakdown** — LLM classifies emotion per review (joy/anger/frustration/…);
+  local backend maps sentiment→coarse emotion.
+- [x] **taxonomy** bug/feature_request/ux/pricing/other — LLM in synthesize; local via keyword rules.
+- [x] `insights/derived.py` centralizes assembly so local + LLM + graph emit identical shape.
+- [x] `model_teacher = gpt-5.5` set for phase 3b. **24 tests green** (live LLM included).
+- commit: `feat: sentiment-derived metrics (emotion, taxonomy, mismatch)`
 
 ## Phase 5 — REST API ☐
 - [ ] `app/models.py` (pydantic schemas)

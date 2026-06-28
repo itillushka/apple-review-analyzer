@@ -16,12 +16,12 @@ A small but real state graph:
 from __future__ import annotations
 
 import re
-from collections import Counter
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
 
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
+from .derived import assemble_insights
 from .llm import _analyze_negatives, _classify_sentiment, _text, llm_available
 from .local import compute_local_insights
 
@@ -33,6 +33,7 @@ class _State(TypedDict, total=False):
     per_review: list[ReviewSentiment]
     themes: list[ThemeStat]
     actionable: list[str]
+    taxonomy: dict[str, int]
     retries: int
     dropped: int
     result: Insights
@@ -76,23 +77,19 @@ def _classify_node(state: _State) -> dict:
 
 
 def _synthesize_node(state: _State) -> dict:
-    themes, actionable = _analyze_negatives(_negatives(state))
-    return {"themes": themes, "actionable": actionable}
+    themes, actionable, taxonomy = _analyze_negatives(_negatives(state))
+    return {"themes": themes, "actionable": actionable, "taxonomy": taxonomy}
 
 
 def _critic_node(state: _State) -> dict:
     grounded, dropped = _ground_themes(state["themes"], _negatives(state))
-    per = state["per_review"]
-    counts = Counter(s.sentiment for s in per)
-    dist = {k: counts.get(k, 0) for k in ("positive", "neutral", "negative")}
-    total = len(per) or 1
-    result = Insights(
+    result = assemble_insights(
         backend="llm",
-        sentiment_distribution=dist,
-        sentiment_pct={k: round(v / total * 100, 1) for k, v in dist.items()},
-        negative_themes=grounded,
+        reviews=state["reviews"],
+        per_review=state["per_review"],
+        themes=grounded,
         actionable=state.get("actionable", []),
-        per_review=per,
+        taxonomy=state.get("taxonomy", {}),
     )
     return {
         "themes": grounded,

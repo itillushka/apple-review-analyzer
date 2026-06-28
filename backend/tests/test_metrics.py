@@ -6,8 +6,8 @@ from datetime import datetime
 
 import pytest
 
-from app.metrics import compute_rating_metrics
-from app.models import Review
+from app.metrics import compute_mismatch, compute_rating_metrics
+from app.models import Review, ReviewSentiment
 
 
 def _r(rating, *, version=None, updated=None, country="gb", id="x"):
@@ -62,3 +62,17 @@ def test_metrics_handles_missing_version_and_date():
 def test_empty_reviews_raises():
     with pytest.raises(ValueError):
         compute_rating_metrics([])
+
+
+def test_compute_mismatch():
+    reviews = [_r(5, id="a"), _r(1, id="b"), _r(5, id="c")]
+    sentiments = [
+        ReviewSentiment(id="a", sentiment="negative", score=-1.0),  # 5★ + negative → mismatch
+        ReviewSentiment(id="b", sentiment="positive", score=1.0),  # 1★ + positive → mismatch
+        ReviewSentiment(id="c", sentiment="positive", score=1.0),  # 5★ + positive → ok
+    ]
+
+    count, examples = compute_mismatch(reviews, sentiments)
+
+    assert count == 2
+    assert set(examples) == {"a", "b"}

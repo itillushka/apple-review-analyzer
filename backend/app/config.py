@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # the premium OpenAI model below is used only at dev-time (prompt distillation, phase 3b).
     model_classify: str = "tencent/hy3-preview"  # #2 by tokens, cheapest
     model_synthesize: str = "deepseek/deepseek-v4-flash"  # #1 by tokens, 1M ctx
-    model_teacher: str = "gpt-5.4"  # OpenAI, dev-time distillation/eval only
+    model_teacher: str = "gpt-5.5"  # OpenAI, dev-time distillation/eval only
 
     # Optional paid escalation at runtime / teacher model for dev-time distillation.
     openai_api_key: str | None = None
