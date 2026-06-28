@@ -1,0 +1,177 @@
+# Review Atlas — API Reference
+
+Collect Apple App Store reviews for any app and analyze them with NLP/LLM —
+metrics, sentiment, emotions, themes, and actionable recommendations.
+
+- **Base URL (local):** `http://localhost:8100`
+- **Auth:** none required (the LLM keys live server-side; clients call freely)
+- **Format:** JSON. Interactive Swagger UI at `/docs`.
+
+## Conventions
+
+**Common query parameters**
+
+| Param | Type | Default | Notes |
+|-------|------|---------|-------|
+| `app_id` | string | — (required) | Numeric App Store id, e.g. `1459969523` (Nebula) |
+| `region` | enum | `europe` | `europe` · `asia` · `africa` |
+| `limit` | int | `100` | 1–500 reviews to sample |
+| `refresh` | bool | `false` | Recompute instead of returning the cached analysis |
+
+**Errors** — standard HTTP status codes with a JSON `{"detail": "..."}` body.
+
+| Status | When |
+|--------|------|
+| `400` | Invalid app id (non-numeric) |
+| `404` | No reviews found for the app |
+| `422` | Invalid query parameter (e.g. unknown region) |
+| `502` | Upstream (Apple RSS) failure after retries |
+
+---
+
+## POST /collect
+
+Collect reviews for an app and return collection metadata (counts, sources). Does
+not run analysis.
+
+**Body**
+
+```json
+{ "app_id": "1459969523", "region": "europe", "limit": 100 }
+```
+
+**Response** `200`
+
+```json
+{
+  "app_id": "1459969523",
+  "region": "europe",
+  "requested": 100,
+  "available": 100,
+  "returned": 100,
+  "countries": ["de", "gb"],
+  "sort_orders": ["mostrecent", "mosthelpful"],
+  "warning": null
+}
+```
+
+```bash
+curl -X POST http://localhost:8100/collect \
+  -H "Content-Type: application/json" \
+  -d '{"app_id":"1459969523","region":"europe","limit":100}'
+```
+
+---
+
+## GET /metrics
+
+Rating metrics only — fast, no translation, no LLM.
+
+```bash
+curl "http://localhost:8100/metrics?app_id=1459969523&region=europe&limit=100"
+```
+
+**Response** `200`
+
+```json
+{
+  "collected": { "app_id": "1459969523", "region": "europe", "returned": 100, "countries": ["de","gb"] },
+  "metrics": {
+    "total": 100,
+    "average": 3.24,
+    "distribution": { "1": 38, "2": 1, "3": 5, "4": 11, "5": 45 },
+    "distribution_pct": { "1": 38.0, "2": 1.0, "3": 5.0, "4": 11.0, "5": 45.0 },
+    "top_box_pct": 56.0,
+    "bottom_box_pct": 39.0,
+    "by_version": [ { "version": "6.45.0", "count": 5, "average": 4.0 } ],
+    "trend": [ { "month": "2026-05", "count": 31, "average": 3.9 } ],
+    "by_country": { "de": 50, "gb": 50 },
+    "earliest": "2020-05-19T...",
+    "latest": "2026-06-26T..."
+  }
+}
+```
+
+---
+
+## GET /insights
+
+Sentiment, emotions, taxonomy, negative themes, and actionable recommendations.
+Runs the full pipeline (cached).
+
+```bash
+curl "http://localhost:8100/insights?app_id=1459969523&region=europe"
+```
+
+**Response** `200`
+
+```json
+{
+  "backend": "llm",
+  "sentiment_distribution": { "positive": 50, "neutral": 9, "negative": 41 },
+  "sentiment_pct": { "positive": 50.0, "neutral": 9.0, "negative": 41.0 },
+  "emotion_distribution": { "satisfaction": 38, "anger": 21, "frustration": 15 },
+  "taxonomy": { "bug": 0, "feature_request": 0, "ux": 6, "pricing": 29, "other": 5 },
+  "mismatch_count": 2,
+  "negative_themes": [
+    { "theme": "Unauthorized subscription charges", "count": 28, "share": 70.0,
+      "examples": ["pretend you are getting a 3 day trial but take the money"] }
+  ],
+  "actionable": [
+    "Require explicit user opt-in for recurring subscriptions with clear terms."
+  ]
+}
+```
+
+> `backend` is `"llm"` when LLM models are configured, or `"local"` when the offline
+> NLP fallback is used — the response is transparent about which engine ran.
+
+---
+
+## GET /analyze
+
+The full analysis in one call: collection metadata + rating metrics + insights.
+Cached per `(app_id, region)`; pass `refresh=true` to recompute.
+
+```bash
+curl "http://localhost:8100/analyze?app_id=1459969523&region=europe&limit=100"
+```
+
+**Response** `200`
+
+```json
+{
+  "app_id": "1459969523",
+  "region": "europe",
+  "collected": { "returned": 100, "countries": ["de", "gb"] },
+  "metrics":   { "average": 3.24, "top_box_pct": 56.0 },
+  "insights":  { "backend": "llm", "sentiment_pct": { "negative": 41.0 } }
+}
+```
+
+---
+
+## GET /reviews/download
+
+Download the raw collected reviews as JSON or CSV (browser-friendly attachment).
+
+| Param | Notes |
+|-------|-------|
+| `format` | `json` (default) or `csv` |
+
+```bash
+curl -OJ "http://localhost:8100/reviews/download?app_id=1459969523&format=csv"
+```
+
+CSV columns: `id, rating, title, content, content_en, country, version, updated,
+vote_count, vote_sum`.
+
+---
+
+## GET /health
+
+Liveness probe for uptime checks / the reverse proxy.
+
+```json
+{ "status": "ok", "service": "Apple Store Review Analysis API", "version": "0.1.0" }
+```
