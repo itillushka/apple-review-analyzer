@@ -21,8 +21,8 @@ web dashboard.
 ## Architecture (planned)
 
 - **Backend:** Python · FastAPI · LangGraph (insights pipeline) · Langfuse (LLM observability)
-- **AI:** OpenRouter (multi-model routing) with a local NLP fallback (VADER + YAKE) so the
-  core runs without any external service
+- **AI:** OpenRouter multi-model routing (cheap, top-ranked models), orchestrated as a
+  LangGraph graph: classify → synthesize → deterministic critic (with a re-synthesize loop)
 - **Frontend:** React · Vite · Tailwind · Recharts
 - **Data source:** Apple App Store public reviews RSS
 - **Deployment:** Docker Compose

@@ -29,14 +29,12 @@ def test_ground_themes_drops_unsupported():
     assert any(t.theme == "Spaceship navigation" for t in dropped)
 
 
-def test_graph_local_path(monkeypatch):
-    # Force the offline branch regardless of whether a key is configured.
+def test_graph_requires_llm_key(monkeypatch):
+    # No OpenRouter key → insights cannot be generated (no local fallback).
     monkeypatch.setattr(graph, "llm_available", lambda: False)
 
-    ins = run_insights([_r("1", "terrible billing scam, lost my money")])
-
-    assert ins.backend == "local"
-    assert ins.per_review  # local backend still classifies
+    with pytest.raises(RuntimeError):
+        run_insights([_r("1", "terrible billing scam, lost my money")])
 
 
 @pytest.mark.skipif(not llm_available(), reason="no OPENROUTER_API_KEY")

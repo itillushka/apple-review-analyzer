@@ -17,7 +17,6 @@ from pathlib import Path
 from ..config import settings
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
 from .derived import assemble_insights
-from .local import compute_local_insights
 
 logger = logging.getLogger(__name__)
 
@@ -233,14 +232,3 @@ def compute_llm_insights(reviews: list[Review]) -> Insights:
         actionable=actionable,
         taxonomy=taxonomy,
     )
-
-
-def compute_insights(reviews: list[Review]) -> Insights:
-    """Dispatcher: LLM backend when available, else (or on failure) the local backend."""
-    if not llm_available():
-        return compute_local_insights(reviews)
-    try:
-        return compute_llm_insights(reviews)
-    except Exception as exc:
-        logger.warning("LLM insights failed (%s); falling back to local backend.", exc)
-        return compute_local_insights(reviews)

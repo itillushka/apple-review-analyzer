@@ -1,7 +1,7 @@
-"""Shared assembly of the Insights object + local emotion/taxonomy helpers.
+"""Shared assembly of the Insights object.
 
-Centralizes the sentiment / emotion / mismatch aggregation so the local backend,
-the LLM backend, and the graph all emit the same ``Insights`` shape.
+Centralizes the sentiment / emotion / mismatch aggregation so the LLM backend and the
+graph emit the same ``Insights`` shape.
 """
 
 from __future__ import annotations
@@ -12,42 +12,6 @@ from ..metrics import compute_mismatch
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
 
 _SENTIMENTS = ("positive", "neutral", "negative")
-_TAXONOMY_KEYS = ("bug", "feature_request", "ux", "pricing", "other")
-
-# Coarse emotion mapping for the local (no-LLM) backend.
-_LOCAL_EMOTION = {
-    "positive": "satisfaction",
-    "neutral": "neutral",
-    "negative": "frustration",
-}
-
-_TAXONOMY_KEYWORDS = {
-    "bug": ("crash", "bug", "error", "freeze", "glitch", "broken", "not work", "doesn't work"),
-    "pricing": ("price", "expensive", "subscription", "charge", "money", "refund",
-                "cost", "scam", "trial", "pay"),
-    "feature_request": ("wish", "should add", "would be nice", "please add", "missing"),
-    "ux": ("confus", "hard to", "difficult", "interface", "navigat", "clunky", "slow"),
-}
-
-
-def local_emotion(sentiment: str) -> str:
-    """Map a sentiment label to a coarse emotion (used by the local backend)."""
-    return _LOCAL_EMOTION.get(sentiment, "neutral")
-
-
-def local_taxonomy(negatives: list[Review]) -> dict[str, int]:
-    """Bucket negative reviews into bug/feature/ux/pricing/other by keyword match."""
-    counts = {k: 0 for k in _TAXONOMY_KEYS}
-    for r in negatives:
-        text = (r.content_clean or r.content_en or r.content or "").lower()
-        matched = False
-        for category, keywords in _TAXONOMY_KEYWORDS.items():
-            if any(kw in text for kw in keywords):
-                counts[category] += 1
-                matched = True
-        if not matched:
-            counts["other"] += 1
-    return counts
 
 
 def assemble_insights(

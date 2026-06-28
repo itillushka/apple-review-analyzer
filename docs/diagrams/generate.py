@@ -191,20 +191,15 @@ def ai_pipeline():
     W, H = 1120, 1120
     b = markers([CLIENT, PIPE, ACCENT, GOOD, WARN, EXT])
     b.append(text(W / 2, 38, "Review Atlas — AI / Insights Pipeline", 20, "middle", "700"))
-    b.append(text(W / 2, 60, "LangGraph state graph · multi-model routing · local fallback · distillation", 12, "middle", "400", SUB))
+    b.append(text(W / 2, 60, "LangGraph state graph · multi-model routing · deterministic critic · distillation", 12, "middle", "400", SUB))
 
     # Entry
-    b += node(60, 110, 150, 56, "Reviews (EN)", "translated + cleaned", PIPE, "#f0fdfa")
-    # decision diamond
-    cx, cy = 320, 138
-    b.append(f'<path d="M{cx},{cy-34} L{cx+70},{cy} L{cx},{cy+34} L{cx-70},{cy} z" fill="#fff7ed" stroke="{WARN}" stroke-width="1.5"/>')
-    b.append(text(cx, cy - 4, "LLM key?", 12, "middle", "600"))
-    b.append(text(cx, cy + 13, "route", 10, "middle", "400", SUB))
-    b += arrow(210, 138, 250, 138, PIPE)
+    b += node(60, 120, 150, 70, "Reviews (EN)", "translated + cleaned", PIPE, "#f0fdfa")
+    b += arrow(210, 155, 440, 155, PIPE, label="EN reviews")
 
-    # LLM path container
+    # LangGraph graph
     b.append(rect(420, 86, 640, 150, "#f5f3ff", ACCENT, 14, 1.2, "6,4"))
-    b.append(text(440, 106, "LLM PATH (cheap top-ranked models, multi-vendor)", 11, "start", "700", ACCENT))
+    b.append(text(440, 106, "LANGGRAPH — classify → synthesize → critic (cheap top-ranked models)", 11, "start", "700", ACCENT))
     b += node(440, 120, 170, 70, "classify", "sentiment + emotion · Tencent Hy3", ACCENT, "#ffffff")
     b += node(630, 120, 170, 70, "synthesize", "themes + actions + taxonomy · DeepSeek V4", ACCENT, "#ffffff")
     b += node(820, 120, 170, 70, "critic", "grounding check (deterministic)", GOOD, "#ffffff")
@@ -213,15 +208,6 @@ def ai_pipeline():
     # retry loop critic -> synthesize
     b.append(f'<path d="M905,190 C905,225 715,225 715,192" fill="none" stroke="{WARN}" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#a-{WARN.lstrip("#")})"/>')
     b.append(text(810, 222, "retry if themes dropped", 10, "middle", "500", WARN))
-    b += arrow(390, 120, 440, 120, WARN, label="yes")
-
-    # Local path
-    b.append(rect(420, 260, 640, 70, "#ecfeff", PIPE, 14, 1.2, "6,4"))
-    b.append(text(440, 280, "LOCAL FALLBACK (fully offline)", 11, "start", "700", PIPE))
-    b += chip(440, 292, 150, "VADER sentiment", PIPE)
-    b += chip(602, 292, 150, "YAKE themes", PIPE)
-    b += chip(764, 292, 200, "rule-based recommendations", PIPE)
-    b += arrow(360, 168, 440, 290, PIPE, dash="5,4", label="no")
 
     # Langfuse cross-cut
     b += node(440, 360, 200, 48, "Langfuse", "traces every LLM call", EXT, "#f8fafc")
@@ -230,7 +216,6 @@ def ai_pipeline():
     # Assemble -> outputs
     b += node(700, 356, 160, 56, "Insights", "assembled result", ACCENT, "#ffffff")
     b += arrow(990, 190, 780, 356, ACCENT, label="assemble")
-    b += arrow(620, 330, 700, 372, PIPE, dash="5,4")
 
     outs = ["sentiment", "emotion", "taxonomy", "mismatch", "themes", "actionable"]
     oy = 356
@@ -256,10 +241,8 @@ def ai_pipeline():
     b.append(rect(60, 656, 360, 34, "#ffffff", EXT, 8, 1))
     b += arrow(72, 673, 100, 673, ACCENT, sw=2)
     b.append(text(108, 677, "LLM flow", 10, "start", "400", INK))
-    b += arrow(196, 673, 224, 673, PIPE, dash="5,4", sw=2)
-    b.append(text(232, 677, "fallback", 10, "start", "400", INK))
-    b += arrow(300, 673, 328, 673, WARN, dash="5,3", sw=2)
-    b.append(text(336, 677, "retry loop", 10, "start", "400", INK))
+    b += arrow(220, 673, 248, 673, WARN, dash="5,3", sw=2)
+    b.append(text(256, 677, "retry loop", 10, "start", "400", INK))
 
     return svg("0 0 1120 1120", b, W, H)
 

@@ -1,13 +1,11 @@
 """LangGraph orchestration for insights generation.
 
-A small but real state graph:
+A small but real state graph with a feedback cycle:
 
-    START ─(llm?)─▶ classify ─▶ synthesize ─▶ critic ─▶ END
-          └(local)─▶ local ─▶ END
-                                 critic ─(ungrounded & retries left)─▶ synthesize
+    START ─▶ classify ─▶ synthesize ─▶ critic ─▶ END
+                              ▲             │
+                              └──(ungrounded & retries left)──┘
 
-- A conditional entry routes to the LLM path (when an OpenRouter key is set) or the
-  offline local path.
 - The runtime critic is **deterministic**: it checks each synthesized theme is actually
   grounded in the negative reviews, drops hallucinated ones, and may loop back to
   re-synthesize once. (Premium-model validation lives in dev-time distillation, phase 3b.)
@@ -23,7 +21,6 @@ from langgraph.graph import END, StateGraph
 from ..models import Insights, Review, ReviewSentiment, ThemeStat
 from .derived import assemble_insights
 from .llm import _analyze_negatives, _classify_sentiment, _text, llm_available
-from .local import compute_local_insights
 
 _MAX_RETRIES = 1
 
@@ -64,14 +61,6 @@ def _ground_themes(
 
 # --- graph nodes ---
 
-def _route(state: _State) -> str:
-    return "llm" if llm_available() else "local"
-
-
-def _local_node(state: _State) -> dict:
-    return {"result": compute_local_insights(state["reviews"])}
-
-
 def _classify_node(state: _State) -> dict:
     return {"per_review": _classify_sentiment(state["reviews"])}
 
@@ -111,12 +100,10 @@ def _build():
     g.add_node("classify", _classify_node)
     g.add_node("synthesize", _synthesize_node)
     g.add_node("critic", _critic_node)
-    g.add_node("local", _local_node)
-    g.set_conditional_entry_point(_route, {"llm": "classify", "local": "local"})
+    g.set_entry_point("classify")
     g.add_edge("classify", "synthesize")
     g.add_edge("synthesize", "critic")
     g.add_conditional_edges("critic", _critic_decision, {"retry": "synthesize", "done": END})
-    g.add_edge("local", END)
     return g.compile()
 
 
@@ -124,6 +111,12 @@ _GRAPH = _build()
 
 
 def run_insights(reviews: list[Review]) -> Insights:
-    """Run the insights graph (LLM path with critic, or offline local path)."""
+    """Run the insights graph (classify → synthesize → critic, with re-synthesize loop).
+
+    Raises:
+        RuntimeError: if no OpenRouter key is configured (LLM is required).
+    """
+    if not llm_available():
+        raise RuntimeError("OPENROUTER_API_KEY is required to generate insights.")
     final = _GRAPH.invoke({"reviews": reviews, "retries": 0})
     return final["result"]
