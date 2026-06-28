@@ -49,15 +49,19 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [x] tests (`test_processing.py`, `test_metrics.py`). **17 tests green.**
 - commit: `feat: text processing and rating metrics`
 
-## Phase 3 — Insights graph (LangGraph) 🔄
+## Phase 3 — Insights graph (LangGraph) ✅
 - [x] `insights/local.py` — VADER sentiment + YAKE themes + rule-based advice (offline
   fallback); junk-theme filtering. Emits the shared `Insights` model.
 - [x] `insights/llm.py` — **top-ranked OpenRouter models** (classify=Tencent Hy3,
   synthesize=DeepSeek V4 Flash, critic=MiniMax M2.5), batched classification + theme/recommendation
   synthesis, robust JSON parse + retry, **Langfuse tracing**, graceful **local fallback**.
 - [x] Real (live) integration test `test_insights_llm.py` — skips without key. **20 tests green.**
-- [ ] `insights/graph.py` — LangGraph orchestration: classify → analyze → **critic loop** (next)
-- commit: `feat: local insights backend` · `feat: LLM insights backend (OpenRouter multi-model)`
+- [x] `insights/graph.py` — **LangGraph** StateGraph: conditional entry (llm/local) →
+  classify → synthesize → **deterministic critic** (grounding check) with re-synthesize loop.
+- [x] **Langfuse tracing** active (verified): all LLM calls traced to Langfuse Cloud.
+- [x] Decision: runtime critic is deterministic/cheap; **premium OpenAI is dev-time only**
+  (teacher for phase 3b). **23 tests green** (live LLM tests included).
+- commit: `feat: local insights backend` · `feat: LLM insights backend` · `feat: LangGraph graph + critic`
 
 ## Phase 3b — Prompt distillation (dev-time) ☐
 - [ ] `scripts/distill_prompts.py` — teacher gold outputs on a fixed sample
