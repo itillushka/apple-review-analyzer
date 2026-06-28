@@ -111,8 +111,9 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [ ] `docs/demo-script-ua.md` (Ukrainian video scenario)
 - commit: `docs: architecture ADR, diagram, demo script`
 
-## Phase 10 — README (full) ☐
-- [ ] Setup, approach, design decisions, curl examples, report link
+## Phase 10 — README (full) ✅
+- [x] Overview, highlights, tech stack, quick start, API table, "how the AI works" (with
+  diagrams), testing, Docker/deploy, project structure, design decisions.
 - commit: `docs: complete README`
 
 ## Phase 11 — Deploy 🔄
