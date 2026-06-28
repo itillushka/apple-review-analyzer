@@ -89,6 +89,34 @@ class RatingMetrics(BaseModel):
     latest: datetime | None = None
 
 
+class ReviewSentiment(BaseModel):
+    """Sentiment classification for a single review."""
+
+    id: str
+    sentiment: str  # positive | neutral | negative
+    score: float  # signed polarity, roughly -1..1
+
+
+class ThemeStat(BaseModel):
+    """A recurring theme/keyword in negative reviews."""
+
+    theme: str
+    count: int  # negative reviews mentioning it
+    share: float  # % of negative reviews
+    examples: list[str] = Field(default_factory=list)
+
+
+class Insights(BaseModel):
+    """AI/NLP insights for a set of reviews — emitted by both backends identically."""
+
+    backend: str  # "local" | "llm"
+    sentiment_distribution: dict[str, int]  # positive/neutral/negative -> count
+    sentiment_pct: dict[str, float]
+    negative_themes: list[ThemeStat]
+    actionable: list[str]  # recommended areas of improvement
+    per_review: list[ReviewSentiment] = Field(default_factory=list)
+
+
 class CollectionState(BaseModel):
     """Persisted accumulation enabling incremental (top-up) collection.
 

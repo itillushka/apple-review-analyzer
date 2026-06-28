@@ -11,6 +11,8 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "python-dotenv>=1.2.2",
     "uvicorn[standard]>=0.49.0",
+    "vadersentiment>=3.3.2",
+    "yake>=0.7.3",
 ]
 
 [dependency-groups]

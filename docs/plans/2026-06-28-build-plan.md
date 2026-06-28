@@ -9,8 +9,9 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 ## External dependencies (provide when the phase needs it)
 | Need | For phase | Status |
 |------|-----------|--------|
-| OpenRouter API key (free tier) | 3 — LLM nodes | ⛔ pending |
-| Paid teacher key (OpenAI/Claude) | 3b — distillation | ⛔ pending |
+| OpenRouter API key (free tier) | 3 — LLM nodes | ✅ provided (validated) |
+| Paid teacher key (OpenAI) | 3b — distillation | ✅ provided |
+| Langfuse keys | 3 — tracing | ✅ provided |
 | SSH access + subdomain to VPS | 11 — deploy | ⛔ pending |
 
 ---
@@ -48,15 +49,15 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [x] tests (`test_processing.py`, `test_metrics.py`). **17 tests green.**
 - commit: `feat: text processing and rating metrics`
 
-## Phase 3 — Insights graph (LangGraph) ☐
-- [ ] `insights/nodes_local.py` — VADER + YAKE + rule-based (offline fallback)
+## Phase 3 — Insights graph (LangGraph) 🔄
+- [x] `insights/local.py` — VADER sentiment + YAKE themes + rule-based advice (offline
+  fallback); junk-theme filtering. Emits the shared `Insights` model. **19 tests green.**
 - [ ] `insights/graph.py` — StateGraph: classify → mine_themes → detect_mismatch →
       synthesize → critic (loop); conditional backend edge; structured-output retry
 - [ ] `insights/nodes_llm.py` — free OpenRouter models, task-routed
 - [ ] `insights/tracing.py` — Langfuse (env-gated, no-op if unset)
 - [ ] tests (mocked LLM)
-- commit: `feat: LangGraph insights pipeline with local fallback`
-- ⛔ needs OpenRouter key for the LLM path (local path testable without)
+- commit: `feat: local insights backend` (+ LLM/graph commits to follow)
 
 ## Phase 3b — Prompt distillation (dev-time) ☐
 - [ ] `scripts/distill_prompts.py` — teacher gold outputs on a fixed sample
