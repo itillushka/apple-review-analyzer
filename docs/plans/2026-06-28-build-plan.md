@@ -26,10 +26,11 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 ## Phase 1 — Data collection ✅
 - [x] `app/collector.py` — Apple RSS fetch, pagination, sampling (pool → 100), de-dup
 - [x] Error handling (invalid id, network retry, <100, empty feed)
-- [x] `tests/test_collector.py` (5 tests, mocked httpx)
-- Note: Apple RSS is intermittently empty per storefront → fall back across English
-  storefronts (us→gb,ca,au,ie,nz,in,za,sg); `meta.countries` reports the real sources.
-- commit: `feat: collect App Store reviews via Apple RSS`
+- [x] `tests/test_collector.py` (7 tests, mocked httpx)
+- [x] Region-based: **europe** (default) / asia / africa; iterates a region's storefronts
+  to survive Apple's per-storefront empty-feed flakiness; `meta.countries` = real sources.
+- [ ] **Translation layer** (multilingual reviews → English) — next step
+- commit: `feat: collect App Store reviews via Apple RSS` + `feat: region-based collection`
 
 ## Phase 2 — Processing + rating metrics ☐
 - [ ] `app/processing.py` — clean/normalize text (raw + cleaned)

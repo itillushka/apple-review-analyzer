@@ -25,10 +25,20 @@ RSS_URL = (
     "/page={page}/id={app_id}/sortby={sort}/json"
 )
 SORT_ORDERS = ("mostrecent", "mosthelpful")
-# English-language storefronts. Apple's RSS is intermittently empty for a given
-# (app, storefront, sort), so we fall back across English markets to stay robust
-# while keeping the review text in English (so the NLP stack behaves).
-DEFAULT_FALLBACK_COUNTRIES = ("gb", "ca", "au", "ie", "nz", "in", "za", "sg")
+
+# Reviews are collected by region. Apple's RSS is intermittently empty for a given
+# (app, storefront, sort), so within a region we iterate several storefronts until
+# the pool is filled. Reviews come in each storefront's language; a translation
+# layer normalizes them to English downstream (so the NLP stack behaves). Lists are
+# ordered roughly by review volume, English storefronts first where available.
+REGION_STOREFRONTS: dict[str, tuple[str, ...]] = {
+    "europe": ("gb", "ie", "de", "fr", "it", "es", "nl", "se", "no", "dk",
+               "fi", "pl", "pt", "at", "be", "ch", "cz", "gr", "hu", "ro"),
+    "asia": ("in", "jp", "kr", "hk", "tw", "sg", "id", "th", "vn", "ph",
+             "my", "ae", "sa", "il", "tr"),
+    "africa": ("za", "ng", "eg", "ke", "ma", "gh", "tz", "ug", "dz", "tn"),
+}
+DEFAULT_REGION = "europe"
 MAX_PAGES = 10
 REQUEST_TIMEOUT = 15.0
 
@@ -124,29 +134,37 @@ async def _fetch_page(
 async def collect_reviews(
     app_id: str,
     *,
-    country: str = "us",
+    region: str = DEFAULT_REGION,
     limit: int = 100,
     seed: int | None = None,
-    fallback_countries: tuple[str, ...] = DEFAULT_FALLBACK_COUNTRIES,
     max_pages: int = MAX_PAGES,
 ) -> CollectResult:
-    """Collect ~``limit`` reviews for ``app_id`` and return a sampled result.
+    """Collect ~``limit`` reviews for ``app_id`` from a region and return a sample.
 
-    Strategy: gather a pool across ``SORT_ORDERS`` for the primary ``country`` (then
-    fallback storefronts if still short), de-duplicate by review id, and sample
-    ``limit`` reviews with a seedable RNG. If fewer than ``limit`` exist, all are
-    returned and a warning is attached to the metadata.
+    Strategy: gather a pool across ``SORT_ORDERS`` and the region's storefronts
+    (iterating further storefronts only while still short), de-duplicate by review
+    id, and sample ``limit`` reviews with a seedable RNG. If fewer than ``limit``
+    exist, all are returned and a warning is attached to the metadata.
+
+    Args:
+        region: one of ``europe`` (default), ``asia``, ``africa``.
 
     Raises:
         InvalidAppIdError: if ``app_id`` is not numeric.
+        ValueError: if ``region`` is unknown.
         NoReviewsError: if no reviews can be found at all.
     """
     app_id = _validate_app_id(app_id)
+    if region not in REGION_STOREFRONTS:
+        raise ValueError(
+            f"Unknown region {region!r}; choose one of {tuple(REGION_STOREFRONTS)}."
+        )
+
     pool: dict[str, Review] = {}
     contributed: list[str] = []  # storefronts that actually returned reviews
     target_pool = limit * 2  # over-sample so the random pick is meaningfully random
 
-    countries = [country, *(c for c in fallback_countries if c != country)]
+    countries = REGION_STOREFRONTS[region]
     async with httpx.AsyncClient(headers={"User-Agent": "review-atlas/0.1"}) as client:
         for ctry in countries:
             country_added = False
@@ -184,6 +202,7 @@ async def collect_reviews(
 
     meta = CollectionMeta(
         app_id=app_id,
+        region=region,
         requested=limit,
         available=len(items),
         returned=returned,

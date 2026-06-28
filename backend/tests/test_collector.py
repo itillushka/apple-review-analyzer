@@ -68,42 +68,42 @@ def _route(page_map):
 
 @respx.mock
 async def test_collect_basic_sample_and_fields():
-    # us/mostrecent page 1 → 50 reviews; everything else empty.
-    page_map = {("us", "mostrecent", 1): list(range(1, 51))}
+    # europe → gb is the first storefront; serve 50 reviews there, rest empty.
+    page_map = {("gb", "mostrecent", 1): list(range(1, 51))}
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
     result = await collect_reviews("1459969523", limit=10, seed=42)
 
+    assert result.meta.region == "europe"
     assert result.meta.returned == 10
     assert result.meta.available == 50  # app-info entry excluded
+    assert result.meta.countries == ["gb"]
     assert result.meta.warning is None
-    assert len(result.reviews) == 10
     assert len({r.id for r in result.reviews}) == 10  # unique
     sample = result.reviews[0]
     assert 1 <= sample.rating <= 5
     assert sample.version == "8.2.1"
-    assert sample.country == "us"
+    assert sample.country == "gb"
 
 
 @respx.mock
 async def test_collect_deduplicates_across_pages():
-    # Force a second page by requesting more than one page worth; page 2 repeats page 1.
+    # Force a second page; page 2 repeats page 1 → duplicates must collapse.
     page_map = {
-        ("us", "mostrecent", 1): list(range(1, 51)),
-        ("us", "mostrecent", 2): list(range(1, 51)),  # exact duplicates
+        ("gb", "mostrecent", 1): list(range(1, 51)),
+        ("gb", "mostrecent", 2): list(range(1, 51)),
     }
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
     result = await collect_reviews("1459969523", limit=40, seed=1)
 
-    # Duplicates collapse: still only 50 unique reviews available, not 100.
-    assert result.meta.available == 50
+    assert result.meta.available == 50  # not 100
     assert result.meta.returned == 40
 
 
 @respx.mock
 async def test_fewer_than_requested_sets_warning():
-    page_map = {("us", "mostrecent", 1): [1, 2, 3, 4, 5]}
+    page_map = {("gb", "mostrecent", 1): [1, 2, 3, 4, 5]}
     respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
 
     result = await collect_reviews("1459969523", limit=100, seed=7)
@@ -111,6 +111,19 @@ async def test_fewer_than_requested_sets_warning():
     assert result.meta.available == 5
     assert result.meta.returned == 5
     assert result.meta.warning is not None and "5" in result.meta.warning
+
+
+@respx.mock
+async def test_region_selection_falls_through_storefronts():
+    # asia order starts with "in" (empty here) → should fall through to "jp".
+    page_map = {("jp", "mostrecent", 1): list(range(1, 51))}
+    respx.get(url__regex=r"https://itunes\.apple\.com/.*").mock(side_effect=_route(page_map))
+
+    result = await collect_reviews("1459969523", region="asia", limit=10, seed=3)
+
+    assert result.meta.region == "asia"
+    assert result.meta.countries == ["jp"]
+    assert result.reviews[0].country == "jp"
 
 
 @respx.mock
@@ -124,3 +137,8 @@ async def test_no_reviews_raises():
 async def test_invalid_app_id_raises():
     with pytest.raises(InvalidAppIdError):
         await collect_reviews("not-a-number")
+
+
+async def test_invalid_region_raises():
+    with pytest.raises(ValueError):
+        await collect_reviews("1459969523", region="mars")

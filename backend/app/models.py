@@ -24,17 +24,24 @@ class Review(BaseModel):
     updated: datetime | None = None  # when the review was posted/updated
     vote_count: int = 0  # how many users voted on helpfulness (im:voteCount)
     vote_sum: int = 0  # net helpful votes (im:voteSum)
-    country: str  # App Store storefront the review came from (e.g. "us")
+    country: str  # App Store storefront the review came from (e.g. "de")
+
+    # Filled by the translation layer (None until translated). For English
+    # storefronts these mirror the originals.
+    language: str | None = None  # detected/assumed source language (ISO 639-1)
+    title_en: str | None = None
+    content_en: str | None = None
 
 
 class CollectionMeta(BaseModel):
     """Bookkeeping about a collection run — surfaced to the API for transparency."""
 
     app_id: str
+    region: str  # europe | asia | africa
     requested: int
     available: int  # unique reviews gathered into the sampling pool
     returned: int
-    countries: list[str]
+    countries: list[str]  # storefronts that actually supplied reviews
     sort_orders: list[str]
     warning: str | None = None  # set when fewer than `requested` reviews exist
 
