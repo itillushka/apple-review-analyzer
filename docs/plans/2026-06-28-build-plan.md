@@ -29,8 +29,10 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [x] `tests/test_collector.py` (7 tests, mocked httpx)
 - [x] Region-based: **europe** (default) / asia / africa; iterates a region's storefronts
   to survive Apple's per-storefront empty-feed flakiness; `meta.countries` = real sources.
-- [ ] **Translation layer** (multilingual reviews → English) — next step
-- commit: `feat: collect App Store reviews via Apple RSS` + `feat: region-based collection`
+- [x] **Translation layer** (`translation.py`): region reviews → English; free no-key Google
+  backend now (LLM backend in phase 3); English storefronts passthrough; error-fallback to original.
+- commits: `feat: collect App Store reviews via Apple RSS` · `feat: region-based collection` ·
+  `feat: translation layer (multilingual reviews → English)`
 
 ## Phase 2 — Processing + rating metrics ☐
 - [ ] `app/processing.py` — clean/normalize text (raw + cleaned)

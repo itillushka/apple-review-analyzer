@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Apple Store review analysis API — collection, metrics and AI insights"
 requires-python = ">=3.12"
 dependencies = [
+    "deep-translator>=1.11.4",
     "fastapi>=0.138.1",
     "httpx>=0.28.1",
     "pydantic>=2.13.4",
