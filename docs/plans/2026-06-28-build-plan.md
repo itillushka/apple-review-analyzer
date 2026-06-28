@@ -15,18 +15,20 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 
 ---
 
-## Phase 0 — Scaffold (backend) ☐
+## Phase 0 — Scaffold (backend) ✅
 - [x] Repo: git init, README, .gitignore, public GitHub repo
-- [ ] `backend/` uv project (`pyproject.toml`), `app/` package
-- [ ] `app/config.py` (pydantic-settings), `app/main.py` (FastAPI + CORS + `/health`)
-- [ ] `.env.example`
-- [ ] `uv sync` + `/health` smoke test
-- commit: `chore: scaffold FastAPI backend`
+- [x] `backend/` uv project (`pyproject.toml`), `app/` package
+- [x] `app/config.py` (pydantic-settings), `app/main.py` (FastAPI + CORS + `/health`)
+- [x] `.env.example`
+- [x] `uv sync` + `/health` smoke test
+- commit: `chore: scaffold FastAPI backend with health endpoint`
 
-## Phase 1 — Data collection ☐
-- [ ] `app/collector.py` — Apple RSS fetch, pagination, sampling (pool → 100), de-dup
-- [ ] Error handling (invalid id, network retry, <100, bad country)
-- [ ] `tests/test_collector.py`
+## Phase 1 — Data collection ✅
+- [x] `app/collector.py` — Apple RSS fetch, pagination, sampling (pool → 100), de-dup
+- [x] Error handling (invalid id, network retry, <100, empty feed)
+- [x] `tests/test_collector.py` (5 tests, mocked httpx)
+- Note: Apple RSS is intermittently empty per storefront → fall back across English
+  storefronts (us→gb,ca,au,ie,nz,in,za,sg); `meta.countries` reports the real sources.
 - commit: `feat: collect App Store reviews via Apple RSS`
 
 ## Phase 2 — Processing + rating metrics ☐

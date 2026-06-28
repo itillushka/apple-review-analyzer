@@ -1,8 +1,7 @@
 [project]
 name = "apple-review-analyzer"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Apple Store review analysis API — collection, metrics and AI insights"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.138.1",
@@ -19,3 +18,8 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "respx>=0.23.1",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
