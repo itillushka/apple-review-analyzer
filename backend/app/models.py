@@ -32,6 +32,10 @@ class Review(BaseModel):
     title_en: str | None = None
     content_en: str | None = None
 
+    # Filled by the processing layer: cleaned/normalized English text for analysis.
+    title_clean: str | None = None
+    content_clean: str | None = None
+
 
 class CollectionMeta(BaseModel):
     """Bookkeeping about a collection run — surfaced to the API for transparency."""
@@ -51,6 +55,38 @@ class CollectResult(BaseModel):
 
     meta: CollectionMeta
     reviews: list[Review]
+
+
+class VersionStat(BaseModel):
+    """Average rating for a single app version."""
+
+    version: str
+    count: int
+    average: float
+
+
+class MonthStat(BaseModel):
+    """Average rating for a single calendar month (``YYYY-MM``)."""
+
+    month: str
+    count: int
+    average: float
+
+
+class RatingMetrics(BaseModel):
+    """Pure rating statistics computed from a set of reviews (no NLP/LLM)."""
+
+    total: int
+    average: float
+    distribution: dict[int, int]  # star (1..5) -> count
+    distribution_pct: dict[int, float]  # star (1..5) -> percentage
+    top_box_pct: float  # share of 4–5 star reviews
+    bottom_box_pct: float  # share of 1–2 star reviews
+    by_version: list[VersionStat]  # release analytics
+    trend: list[MonthStat]  # monthly trend, ascending
+    by_country: dict[str, int]  # storefront -> count
+    earliest: datetime | None = None
+    latest: datetime | None = None
 
 
 class CollectionState(BaseModel):

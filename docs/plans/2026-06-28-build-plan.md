@@ -40,10 +40,12 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 
 **✅ Phase 1 CLOSED.**
 
-## Phase 2 — Processing + rating metrics ☐
-- [ ] `app/processing.py` — clean/normalize text (raw + cleaned)
-- [ ] `app/metrics.py` — avg, distribution, top/bottom-box, by-version, monthly trend
-- [ ] tests
+## Phase 2 — Processing + rating metrics ✅
+- [x] `app/processing.py` — `clean_text` + `preprocess_reviews` (NFKC, strip HTML/URLs,
+  collapse whitespace) → `title_clean`/`content_clean` from English text.
+- [x] `app/metrics.py` — avg, star distribution (count + %), top/bottom-box, rating by
+  app version, monthly trend, per-country, date range.
+- [x] tests (`test_processing.py`, `test_metrics.py`). **17 tests green.**
 - commit: `feat: text processing and rating metrics`
 
 ## Phase 3 — Insights graph (LangGraph) ☐
