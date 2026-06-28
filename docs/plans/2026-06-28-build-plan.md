@@ -33,8 +33,12 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
   backend now (LLM backend in phase 3); English storefronts passthrough; error-fallback to original.
 - [x] **Incremental top-up** (`storage.py` JSON cache): cursors + exhausted-storefront tracking
   → a follow-up fetches only the deficit (short by 20 → fetch ~20, not all 100); cache hit = no network.
+- [x] **Documented** in `docs/data-collection.md`; sample output `samples/1459969523_europe.json`;
+  utility `scripts/dump_reviews.py`. **11 tests green.**
 - commits: `feat: collect App Store reviews via Apple RSS` · `feat: region-based collection` ·
-  `feat: translation layer (multilingual reviews → English)`
+  `feat: translation layer` · `feat: incremental top-up` · `chore: dump utility` · `docs: data collection`
+
+**✅ Phase 1 CLOSED.**
 
 ## Phase 2 — Processing + rating metrics ☐
 - [ ] `app/processing.py` — clean/normalize text (raw + cleaned)
