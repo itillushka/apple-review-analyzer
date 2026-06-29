@@ -250,7 +250,7 @@ export default function App() {
         <header style={s("position:sticky;top:0;z-index:20;width:100%;border-bottom:1px solid rgba(255,255,255,0.10);backdrop-filter:blur(8px);background:rgba(0,0,0,0.35)")}>
           <div style={s("max-width:1200px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px")}>
             <a href="#" onClick={nav('home')} style={s("display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer")}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 8 L12 3 L21 8 L21 16 L12 21 L3 16 Z" stroke="#8052ff" strokeWidth="1.5" strokeLinejoin="round" /><path d="M3 8 L12 13 L21 8 M12 13 L12 21" stroke="#8052ff" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="#8052ff" strokeWidth="1.6" /><circle cx="12" cy="12" r="4.2" stroke="#8052ff" strokeWidth="1.4" /><circle cx="12" cy="12" r="1.7" fill="#ffb829" /><path d="M12 1.5 L12 4 M12 20 L12 22.5 M1.5 12 L4 12 M20 12 L22.5 12" stroke="#8052ff" strokeWidth="1.4" strokeLinecap="round" /></svg>
               <span style={s("font-weight:600;font-size:16px;letter-spacing:0.04em;color:#fff")}>REVIEW ATLAS</span>
             </a>
             <nav style={s("display:flex;align-items:center;gap:30px;font-size:14px;letter-spacing:0.021em")}>
@@ -393,7 +393,7 @@ export default function App() {
         <div style={s("position:fixed;inset:0;z-index:100;background:#000;display:flex;align-items:center;justify-content:center;padding:24px")}>
           <div style={s("max-width:440px;width:100%;display:flex;flex-direction:column;gap:24px;text-align:center;align-items:center")}>
             <div style={s("display:flex;align-items:center;gap:12px")}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 8 L12 3 L21 8 L21 16 L12 21 L3 16 Z" stroke="#8052ff" strokeWidth="1.5" strokeLinejoin="round" /><path d="M3 8 L12 13 L21 8 M12 13 L12 21" stroke="#8052ff" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="#8052ff" strokeWidth="1.6" /><circle cx="12" cy="12" r="4.2" stroke="#8052ff" strokeWidth="1.4" /><circle cx="12" cy="12" r="1.7" fill="#ffb829" /><path d="M12 1.5 L12 4 M12 20 L12 22.5 M1.5 12 L4 12 M20 12 L22.5 12" stroke="#8052ff" strokeWidth="1.4" strokeLinecap="round" /></svg>
               <span style={s("font-weight:600;font-size:16px;letter-spacing:0.04em;color:#fff")}>REVIEW ATLAS</span>
             </div>
             <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8052ff")}>Private preview</span>
