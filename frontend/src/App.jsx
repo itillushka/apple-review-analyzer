@@ -3,6 +3,7 @@ import { Box, s } from './ui.jsx';
 import { reviewsData, negThemesData, insightsData, stack, tiers, endpoints, apiSidebarGroups, pill } from './data.js';
 import { highlight } from './highlight.jsx';
 import Particles from './Particles.jsx';
+import Loading from './Loading.jsx';
 import ArchDiagram from './ArchDiagram.jsx';
 import PipelineDiagram from './PipelineDiagram.jsx';
 import { analyze as apiAnalyze, getReviews, downloadReviews, verifyToken, setToken, clearToken, parseAppId } from './api.js';
@@ -34,6 +35,8 @@ export default function App() {
   const [analysis, setAnalysis] = useState(null);
   const [appId, setAppId] = useState('1459969523');
   const [reviewsReal, setReviewsReal] = useState(null);
+  const [loadDone, setLoadDone] = useState(false); // analysis resolved → let the loader finish its bar
+  const pendingRef = useRef(null);                 // holds the resolved analysis until the loader hands off
 
   // Skip the gate when the backend is open (no ACCESS_TOKEN) or a stored token is valid.
   useEffect(() => {
@@ -47,7 +50,6 @@ export default function App() {
   }, [view, appId, reviewsReal]);
 
   const contentRef = useRef(null);
-  const progressRef = useRef(null);
   const lineRef = useRef(null);
   const viewRef = useRef('home');
   const spyLock = useRef(0);
@@ -87,11 +89,14 @@ export default function App() {
     const id = parseAppId(val) || '1459969523'; // empty input → demo (Nebula)
     setAppId(id);
     setReviewsReal(null);
+    pendingRef.current = null;
+    setLoadDone(false);
     setView('loading');
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => { if (progressRef.current) progressRef.current.style.width = '100%'; });
     apiAnalyze(id, 'europe', 100)
-      .then((res) => { setAnalysis(res); setView('dashboard'); window.scrollTo(0, 0); })
+      // Stash the result and let the loader walk its bar to 100% before handing off
+      // (see the loading view's onDone) — no abrupt cut, no instant-full bar.
+      .then((res) => { pendingRef.current = res; setLoadDone(true); })
       .catch((err) => { setErrorTitle(err.message || 'Analysis failed'); setView('error'); window.scrollTo(0, 0); });
   };
 
@@ -256,12 +261,15 @@ export default function App() {
 
           {view === 'home' && <Home nav={nav} startAnalyze={startAnalyze} />}
           {view === 'loading' && (
-            <div style={s("min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;text-align:center;padding:24px")}>
-              <span style={s("font-size:14px;color:#9a9a9a;letter-spacing:0.05em;text-transform:uppercase")}>Charting 100 reviews…</span>
-              <div style={s("width:280px;max-width:80vw;height:2px;background:rgba(255,255,255,0.10);border-radius:24px;overflow:hidden")}>
-                <div ref={progressRef} style={s("height:100%;width:0%;background:#8052ff;border-radius:24px;transition:width .9s cubic-bezier(.16,1,.3,1)")}></div>
-              </div>
-            </div>
+            <Loading
+              done={loadDone}
+              onDone={() => {
+                setAnalysis(pendingRef.current);
+                setLoadDone(false);
+                setView('dashboard');
+                window.scrollTo(0, 0);
+              }}
+            />
           )}
           {view === 'error' && <ErrorView errorTitle={errorTitle} onRetry={nav('home')} />}
           {view === 'dashboard' && <Dashboard nav={nav} lineRef={lineRef} openDownload={() => setModalOpen(true)} analysis={analysis} appId={appId} onTheme={setActiveTheme} startAnalyze={startAnalyze} />}
