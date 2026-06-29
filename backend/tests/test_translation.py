@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+import pytest
+
+from app.config import settings
 from app.models import Review
 from app.translation import translate_reviews
+
+
+@pytest.fixture(autouse=True)
+def _isolated_cache(monkeypatch, tmp_path):
+    """Each test gets a fresh translation cache directory."""
+    monkeypatch.setattr(settings, "data_dir", str(tmp_path))
 
 
 class FakeTranslator:

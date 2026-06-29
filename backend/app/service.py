@@ -21,11 +21,16 @@ from .translation import translate_reviews
 
 
 def _analyze_reviews(reviews: list[Review]) -> tuple[RatingMetrics, "object"]:
-    """Synchronous heavy lifting: translate, clean, compute metrics + insights."""
-    translate_reviews(reviews)
+    """Synchronous heavy lifting.
+
+    The LLM is multilingual, so it analyzes the **original** review text (no blocking
+    on translation). Translation runs afterwards, best-effort and timeout-bounded,
+    only to show English text in the reviews explorer.
+    """
     preprocess_reviews(reviews)
     metrics = compute_rating_metrics(reviews)
     insights = run_insights(reviews)
+    translate_reviews(reviews)
     return metrics, insights
 
 

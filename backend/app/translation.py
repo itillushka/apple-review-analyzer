@@ -9,15 +9,45 @@ default today; an LLM-based translator is wired in phase 3.
 
 from __future__ import annotations
 
+import concurrent.futures
+import json
 import logging
+from pathlib import Path
 from typing import Protocol
 
+from .config import settings
 from .models import Review
 
 logger = logging.getLogger(__name__)
 
 # Storefronts whose reviews are predominantly English — skip translation.
 ENGLISH_STOREFRONTS = {"us", "gb", "ie", "ca", "au", "nz", "in", "za", "sg"}
+
+# Parallel workers + a persistent text→English cache so re-runs are instant.
+# Translation is best-effort for display only (the multilingual LLM analyzes the
+# original text), so it is hard-bounded by a timeout and never blocks for long.
+_MAX_WORKERS = 8
+_TIMEOUT = 25.0
+
+
+def _cache_path() -> Path:
+    return Path(settings.data_dir) / "translation_cache.json"
+
+
+def _load_cache() -> dict:
+    path = _cache_path()
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_cache(cache: dict) -> None:
+    path = _cache_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
 
 # Google's web endpoint rejects very long inputs; reviews are short, but guard anyway.
 MAX_TRANSLATE_CHARS = 4500
@@ -76,18 +106,49 @@ def translate_reviews(
 ) -> list[Review]:
     """Fill ``title_en`` / ``content_en`` / ``language`` on each review, in place.
 
-    English-storefront reviews are marked English and copied through. For others,
-    each field is translated; any failure falls back to the original text. The
-    source language is left unset (None) since we do not run language detection —
-    the translator auto-detects per call.
+    English-storefront reviews are passed through. For others, each unique source
+    text is translated **once** (a persistent cache makes re-runs instant) and the
+    remaining work runs **in parallel** across a thread pool. Failures fall back to
+    the original text so a single bad translation never sinks the batch.
     """
     translator = translator or default_translator()
+    cache = _load_cache()
+
+    # Collect the unique, uncached texts that actually need translating.
+    pending: list[str] = []
+    seen: set[str] = set()
+    for r in reviews:
+        if r.country in ENGLISH_STOREFRONTS:
+            continue
+        for raw in (r.title, r.content):
+            text = (raw or "").strip()
+            if text and text not in cache and text not in seen:
+                seen.add(text)
+                pending.append(text)
+
+    # Translate the backlog concurrently, hard-bounded by a timeout so a flaky
+    # endpoint can never hang the request. Anything not done in time falls back to
+    # the original text (cache.get default below).
+    if pending:
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_WORKERS)
+        futures = {pool.submit(_safe_translate, translator, t): t for t in pending}
+        try:
+            for fut in concurrent.futures.as_completed(futures, timeout=_TIMEOUT):
+                cache[futures[fut]] = fut.result()
+        except concurrent.futures.TimeoutError:
+            logger.warning("Translation timed out; remaining texts stay in original language.")
+        pool.shutdown(wait=False, cancel_futures=True)
+        _save_cache(cache)
+
+    # Assign from the cache (English storefronts mirror the original).
     for r in reviews:
         if r.country in ENGLISH_STOREFRONTS:
             r.language = "en"
             r.title_en = r.title
             r.content_en = r.content
             continue
-        r.title_en = _safe_translate(translator, r.title)
-        r.content_en = _safe_translate(translator, r.content)
+        title = (r.title or "").strip()
+        content = (r.content or "").strip()
+        r.title_en = cache.get(title, r.title) if title else ""
+        r.content_en = cache.get(content, r.content) if content else ""
     return reviews
