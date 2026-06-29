@@ -530,17 +530,18 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
   const insightTags = ['Billing', 'Trust', 'Onboarding', 'Reliability', 'Quality', 'UX'];
   const insightsD = (ins.actionable || []).map((a, i) => ({ tag: insightTags[i] || 'Fix', text: a }));
   const trendArr = m.trend && m.trend.length ? m.trend : null;
+  const yOf = (avg) => 190 - ((Math.max(1, Math.min(5, avg)) - 1) / 4) * 150;
   const trendPts = trendArr
-    ? trendArr.map((t, i) => {
-        const x = trendArr.length === 1 ? 720 : (i / (trendArr.length - 1)) * 720;
-        const y = 190 - ((Math.max(1, Math.min(5, t.average)) - 1) / 4) * 150;
-        return `${Math.round(x)},${Math.round(y)}`;
-      }).join(' ')
+    ? (trendArr.length === 1
+        // A single bucket can't draw a line — render a flat line across the chart at
+        // that period's average so it's visible (all reviews fell in one period).
+        ? `0,${Math.round(yOf(trendArr[0].average))} 720,${Math.round(yOf(trendArr[0].average))}`
+        : trendArr.map((t, i) => `${Math.round((i / (trendArr.length - 1)) * 720)},${Math.round(yOf(t.average))}`).join(' '))
     : '0,128 65,140 131,118 196,150 262,110 327,96 393,108 458,82 524,90 589,64 655,72 720,52';
   const versionBarsD = m.by_version && m.by_version.length
     ? m.by_version.slice(0, 6).map((v) => [Math.round((v.average / 5) * 90) + 'px', v.version])
     : versionBars;
-  const appName = APP_NAMES[appId] || ('App ' + appId);
+  const appName = (analysis && analysis.name) || APP_NAMES[appId] || ('App ' + appId);
   const subtitle = `App Store ID ${(analysis && analysis.app_id) || appId} · ${(col.countries || ['—']).join(', ')} · ${col.returned != null ? col.returned : total} reviews`;
   const engineNote = `Insights engine: ${ins.backend === 'llm' ? 'LLM (OpenRouter multi-model)' : (ins.backend || 'LLM')}.`;
   const TAX_LABELS = { bug: 'Bugs', feature_request: 'Feature requests', ux: 'UX', pricing: 'Pricing & billing', other: 'Other' };
@@ -559,7 +560,9 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
       <div data-reveal="" style={s("display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px")}>
         <div style={s("display:flex;align-items:center;gap:18px")}>
           <div style={s("width:54px;height:54px;border-radius:14px;background:linear-gradient(0deg,#000,#000),#8052ff;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden")}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="#8052ff" strokeWidth="1.5" /><circle cx="12" cy="12" r="2.4" fill="#ffb829" /></svg>
+            {analysis && analysis.icon
+              ? <img src={analysis.icon} alt={appName} width="54" height="54" style={{ display: 'block', objectFit: 'cover' }} />
+              : <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="#8052ff" strokeWidth="1.5" /><circle cx="12" cy="12" r="2.4" fill="#ffb829" /></svg>}
           </div>
           <div style={s("display:flex;flex-direction:column;gap:6px")}>
             <span style={s("font-weight:600;font-size:24px;letter-spacing:0.021em")}>{appName}</span>
@@ -635,7 +638,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
       <section data-reveal="" style={s("border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:18px")}>
         <div style={s("display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px")}>
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating over time</span>
-          <span style={s("font-size:12px;color:#9a9a9a")}>last 12 months · by app version</span>
+          <span style={s("font-size:12px;color:#9a9a9a")}>rating trend · by app version</span>
         </div>
         <div style={s("display:flex;gap:30px;align-items:stretch;flex-wrap:wrap")}>
           <svg viewBox="0 0 720 200" preserveAspectRatio="none" style={{ flex: 1, minWidth: '320px', height: '200px' }}>

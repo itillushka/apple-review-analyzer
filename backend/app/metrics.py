@@ -21,6 +21,35 @@ def _version_key(version: str) -> tuple[int, ...]:
     return tuple(int(p) if p.isdigit() else 0 for p in version.split("."))
 
 
+def _compute_trend(dated: list[Review]) -> list[MonthStat]:
+    """Average rating per time bucket, with granularity adapted to the date span.
+
+    - span ≤ 21 days  → daily buckets (``YYYY-MM-DD``)
+    - span ≤ 120 days → ISO-week buckets (``YYYY-Www``)
+    - otherwise       → monthly buckets (``YYYY-MM``)
+
+    The bucket label is carried in ``MonthStat.month`` (a plain string the chart only
+    uses for ordering). Returns ``[]`` when no reviews carry a date.
+    """
+    if not dated:
+        return []
+    dates = [r.updated for r in dated]
+    span_days = (max(dates) - min(dates)).days
+    if span_days <= 21:
+        key = lambda d: d.strftime("%Y-%m-%d")  # noqa: E731 — daily
+    elif span_days <= 120:
+        key = lambda d: f"{d.isocalendar()[0]}-W{d.isocalendar()[1]:02d}"  # noqa: E731 — weekly
+    else:
+        key = lambda d: d.strftime("%Y-%m")  # noqa: E731 — monthly
+    buckets: dict[str, list[int]] = defaultdict(list)
+    for r in dated:
+        buckets[key(r.updated)].append(r.rating)
+    return [
+        MonthStat(month=k, count=len(rs), average=_mean(rs))
+        for k, rs in sorted(buckets.items())
+    ]
+
+
 def compute_mismatch(
     reviews: list[Review], sentiments: list[ReviewSentiment]
 ) -> tuple[int, list[str]]:
@@ -76,15 +105,11 @@ def compute_rating_metrics(reviews: list[Review]) -> RatingMetrics:
     ]
     by_version.sort(key=lambda s: _version_key(s.version), reverse=True)
 
-    # Trend: average rating per calendar month, ascending.
-    by_month_raw: dict[str, list[int]] = defaultdict(list)
-    for r in reviews:
-        if r.updated:
-            by_month_raw[r.updated.strftime("%Y-%m")].append(r.rating)
-    trend = [
-        MonthStat(month=m, count=len(rs), average=_mean(rs))
-        for m, rs in sorted(by_month_raw.items())
-    ]
+    # Trend: average rating per time bucket, ascending. The bucket granularity adapts
+    # to the date span so the curve is always meaningful — a very active app whose 100
+    # reviews all land in one month still gets a real day-by-day trend, while a sparse
+    # multi-year history is summarized by month.
+    trend = _compute_trend([r for r in reviews if r.updated])
 
     by_country = dict(Counter(r.country for r in reviews))
 

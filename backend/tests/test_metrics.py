@@ -18,9 +18,10 @@ def _r(rating, *, version=None, updated=None, country="gb", id="x"):
 
 
 def test_rating_metrics_full():
+    # Dates span >120 days → the trend buckets by calendar month (see adaptive logic).
     reviews = [
-        _r(5, version="1.0", updated=datetime(2026, 1, 15), country="gb", id="a"),
-        _r(5, version="1.0", updated=datetime(2026, 1, 20), country="gb", id="b"),
+        _r(5, version="1.0", updated=datetime(2025, 9, 15), country="gb", id="a"),
+        _r(5, version="1.0", updated=datetime(2025, 9, 20), country="gb", id="b"),
         _r(4, version="1.1", updated=datetime(2026, 2, 5), country="de", id="c"),
         _r(1, version="1.1", updated=datetime(2026, 2, 10), country="de", id="d"),
     ]
@@ -40,13 +41,26 @@ def test_rating_metrics_full():
     assert by_ver["1.0"].count == 2 and by_ver["1.0"].average == 5.0
     assert by_ver["1.1"].average == 2.5
 
-    # Monthly trend, ascending.
-    assert [t.month for t in m.trend] == ["2026-01", "2026-02"]
+    # Monthly trend (long span), ascending.
+    assert [t.month for t in m.trend] == ["2025-09", "2026-02"]
     assert m.trend[0].average == 5.0
 
     assert m.by_country == {"gb": 2, "de": 2}
-    assert m.earliest == datetime(2026, 1, 15)
+    assert m.earliest == datetime(2025, 9, 15)
     assert m.latest == datetime(2026, 2, 10)
+
+
+def test_trend_buckets_adapt_to_short_spans():
+    # All reviews within a few days → daily buckets, so a very active app whose 100
+    # reviews land in one month still gets a real day-by-day curve (not a single point).
+    reviews = [
+        _r(5, updated=datetime(2026, 6, 14), id="a"),
+        _r(3, updated=datetime(2026, 6, 14), id="b"),
+        _r(4, updated=datetime(2026, 6, 16), id="c"),
+    ]
+    m = compute_rating_metrics(reviews)
+    assert [t.month for t in m.trend] == ["2026-06-14", "2026-06-16"]
+    assert m.trend[0].count == 2 and m.trend[0].average == 4.0
 
 
 def test_metrics_handles_missing_version_and_date():

@@ -13,12 +13,18 @@ sample from that pool with a seedable RNG.
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
 
 import httpx
 
 from . import storage
 from .models import CollectionMeta, CollectionState, CollectResult, Review
+
+logger = logging.getLogger(__name__)
+
+# Public iTunes Lookup API — resolves an app's display name + icon from its id.
+LOOKUP_URL = "https://itunes.apple.com/lookup"
 
 # 50 reviews/page, pages 1..10 per storefront.
 RSS_URL = (
@@ -42,6 +48,30 @@ REGION_STOREFRONTS: dict[str, tuple[str, ...]] = {
 DEFAULT_REGION = "europe"
 MAX_PAGES = 10
 REQUEST_TIMEOUT = 15.0
+
+
+async def fetch_app_meta(app_id: str, country: str = "us") -> dict:
+    """Best-effort app display name + icon via the iTunes Lookup API.
+
+    Returns ``{"name": ..., "icon": ...}`` (either may be ``None``) or ``{}`` on any
+    failure — never raises, so a missing name can't sink an analysis.
+    """
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": "review-atlas/0.1"}) as client:
+            resp = await client.get(
+                LOOKUP_URL, params={"id": app_id, "country": country}, timeout=REQUEST_TIMEOUT
+            )
+            resp.raise_for_status()
+            results = resp.json().get("results", [])
+        if results:
+            r0 = results[0]
+            return {
+                "name": r0.get("trackName"),
+                "icon": r0.get("artworkUrl100") or r0.get("artworkUrl60"),
+            }
+    except Exception as exc:  # network / parse / unexpected shape — degrade gracefully
+        logger.warning("app meta lookup failed for %s (%s)", app_id, exc)
+    return {}
 
 
 class CollectorError(Exception):

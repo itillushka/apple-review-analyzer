@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 
 from . import storage
-from .collector import collect_reviews
+from .collector import collect_reviews, fetch_app_meta
 from .insights import run_insights
 from .metrics import compute_rating_metrics
 from .models import AnalysisResult, CollectionMeta, CollectResult, RatingMetrics, Review
@@ -44,7 +44,13 @@ async def analyze(
             return cached
 
     collected = await collect_reviews(app_id, region=region, limit=limit)
-    metrics, insights = await asyncio.to_thread(_analyze_reviews, collected.reviews)
+
+    # Resolve the app's display name + icon (best-effort) while the heavy NLP/LLM
+    # analysis runs in a worker thread — the two overlap, so the lookup is ~free.
+    country = collected.meta.countries[0] if collected.meta.countries else "us"
+    analyze_task = asyncio.create_task(asyncio.to_thread(_analyze_reviews, collected.reviews))
+    meta = await fetch_app_meta(collected.meta.app_id, country=country)
+    metrics, insights = await analyze_task
 
     analysis = AnalysisResult(
         app_id=collected.meta.app_id,
@@ -52,6 +58,8 @@ async def analyze(
         collected=collected.meta,
         metrics=metrics,
         insights=insights,
+        name=meta.get("name"),
+        icon=meta.get("icon"),
     )
     storage.save_analysis(analysis)
     # Cache the exact sampled reviews joined with their sentiment (for /reviews).

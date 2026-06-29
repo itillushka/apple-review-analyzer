@@ -132,6 +132,8 @@ class AnalysisResult(BaseModel):
     collected: CollectionMeta
     metrics: RatingMetrics
     insights: Insights
+    name: str | None = None  # app display name (iTunes Lookup, best-effort)
+    icon: str | None = None  # app icon URL (iTunes Lookup, best-effort)
 
 
 class CollectRequest(BaseModel):
