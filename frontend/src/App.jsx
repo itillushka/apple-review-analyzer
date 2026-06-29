@@ -296,7 +296,7 @@ export default function App() {
                 </div>
                 <Box as="button" onClick={() => setModalOpen(false)} css="background:transparent;border:none;color:#9a9a9a;font-size:24px;line-height:1;cursor:pointer;padding:0" hover="color:#ffffff">×</Box>
               </div>
-              <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>100 reviews from Nebula · US storefront · most recent. Choose a format.</span>
+              <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>The collected reviews for this app, straight from Apple's public RSS. Choose a format.</span>
               <div style={s("display:flex;gap:12px")}>
                 <Box as="button" onClick={() => { downloadReviews(appId, 'europe', 'json'); setModalOpen(false); }} css="flex:1;background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">JSON</Box>
                 <Box as="button" onClick={() => { downloadReviews(appId, 'europe', 'csv'); setModalOpen(false); }} css="flex:1;background:transparent;border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:background .2s" hover="background:rgba(255,255,255,0.06)">CSV</Box>
@@ -422,12 +422,12 @@ function Home({ nav, startAnalyze }) {
           <div data-reveal="" style={s("padding:30px 30px 30px 0;border-right:1px solid rgba(255,255,255,0.10);display:flex;flex-direction:column;gap:14px")}>
             <span style={s("font-weight:300;font-size:42px;color:#ffb829;letter-spacing:-0.02em")}>01</span>
             <span style={s("font-weight:600;font-size:18px")}>Collect 100 reviews</span>
-            <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>Pulled straight from Apple's public RSS — most recent, US storefront, no API keys.</span>
+            <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>Pulled straight from Apple's public RSS — by region (Europe / Asia / Africa), resilient to per-storefront gaps, no API keys.</span>
           </div>
           <div data-reveal="" style={s("padding:30px;border-right:1px solid rgba(255,255,255,0.10);display:flex;flex-direction:column;gap:14px")}>
             <span style={s("font-weight:300;font-size:42px;color:#ffb829;letter-spacing:-0.02em")}>02</span>
             <span style={s("font-weight:600;font-size:18px")}>Score with AI + NLP</span>
-            <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>Each review is classified for sentiment and clustered into themes — LLM first, local NLP as fallback.</span>
+            <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>Each review is classified for sentiment and clustered into themes by a multi-model LLM pipeline — the original language, no translation needed.</span>
           </div>
           <div data-reveal="" style={s("padding:30px 0 30px 30px;display:flex;flex-direction:column;gap:14px")}>
             <span style={s("font-weight:300;font-size:42px;color:#ffb829;letter-spacing:-0.02em")}>03</span>
@@ -662,7 +662,7 @@ function Reviews({ chipDefs, filter, setFilter, search, setSearch, visibleReview
     <div style={s("max-width:1200px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:36px")}>
       <div data-reveal="" style={s("display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px")}>
         <span style={s("font-weight:300;font-size:48px;letter-spacing:-0.04em")}>Reviews</span>
-        <span style={s("font-size:13px;color:#9a9a9a")}>Nebula · 100 reviews · US · most recent</span>
+        <span style={s("font-size:13px;color:#9a9a9a")}>Apple App Store reviews · translated to English · most recent + most helpful</span>
       </div>
 
       <div data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
@@ -775,7 +775,7 @@ function Compare() {
     <div style={s("max-width:1200px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:60px")}>
       <div data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
         <h2 style={s("font-weight:300;font-size:48px;letter-spacing:-0.04em")}>Nebula vs Co–Star</h2>
-        <span style={s("font-size:14px;color:#9a9a9a")}>100 reviews each · US · most recent</span>
+        <span style={s("font-size:14px;color:#9a9a9a")}>100 reviews each · Europe region · most recent + most helpful</span>
         <div style={s("display:flex;gap:18px;flex-wrap:wrap;margin-top:6px")}>
           <div style={s("display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.14);border-radius:24px;padding:8px 16px")}><span style={s("width:10px;height:10px;border-radius:3px;background:#8052ff")}></span><span style={s("font-size:14px")}>Nebula</span></div>
           <div style={s("display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.14);border-radius:24px;padding:8px 16px")}><span style={s("width:10px;height:10px;border-radius:3px;background:#9a9a9a")}></span><span style={s("font-size:14px")}>Co–Star</span></div>
@@ -844,7 +844,7 @@ function Compare() {
 
 /* ============================ ABOUT ============================ */
 const approachCards = [
-  ['Data', "Apple's public RSS feed — no keys, no scraping, 100 most-recent US reviews per app."],
+  ['Data', "Apple's public RSS feed — no keys, no scraping. ~100 reviews per app across a region (Europe / Asia / Africa), resilient to per-storefront gaps."],
   ['AI', 'A LangGraph graph — classify → synthesize → deterministic critic, with a re-synthesize loop. Cheap top-ranked OpenRouter models (Tencent, DeepSeek), distilled against a gpt-5.5 teacher.'],
   ['Observability', 'Langfuse traces every graph run — prompts, latencies, token spend.'],
   ['Metrics', 'Version analytics, sentiment scoring, and ranked negative themes — the read-out a PM actually uses.'],

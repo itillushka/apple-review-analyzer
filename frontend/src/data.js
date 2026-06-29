@@ -32,7 +32,7 @@ export const insightsData = [
   { tag: 'Reliability', text: 'Add a visible connection-health indicator. Sync failures read as the app being broken, even when the hardware is at fault.' },
 ];
 
-export const stack = ['FastAPI', 'LangGraph', 'Langfuse', 'Claude / LLMAPI', 'VADER', 'YAKE', 'React', 'Tailwind', 'Docker'];
+export const stack = ['FastAPI', 'LangGraph', 'Langfuse', 'OpenRouter', 'gpt-5.5 (teacher)', 'React', 'Vite', 'Tailwind', 'Docker'];
 
 export const tiers = [
   { name: 'Curious', price: '$0', per: '/ forever', blurb: '100 reviews · all metrics · AI insights', cta: 'Still free', recommended: false, border: 'rgba(255,255,255,0.14)', btnBg: 'transparent', btnBorder: '#ffffff', btnColor: '#ffffff' },
