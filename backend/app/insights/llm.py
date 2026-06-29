@@ -215,7 +215,11 @@ def _analyze_negatives(
         '"actionable":["<recommendation>"],'
         '"taxonomy":{"bug":<int>,"feature_request":<int>,"ux":<int>,"pricing":<int>,"other":<int>}}'
     )
-    data = _chat_json(settings.model_synthesize, system, user)
+    try:
+        data = _chat_json(settings.model_synthesize, system, user)
+    except Exception as exc:  # a transient synthesize failure shouldn't 500 the whole analysis
+        logger.warning("synthesize failed (%s); returning metrics/sentiment without themes.", exc)
+        return [], ["Theme synthesis was unavailable for this run; rating and sentiment metrics still apply."], {}
 
     n = len(sample)
     themes: list[ThemeStat] = []

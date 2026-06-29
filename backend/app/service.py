@@ -41,6 +41,16 @@ async def analyze(
     if not refresh:
         cached = storage.load_analysis(app_id, region)
         if cached is not None:
+            # Self-heal analyses cached before app names existed (or when an earlier
+            # lookup failed): backfill the name/icon once, cheaply, without re-running
+            # the whole NLP/LLM pipeline.
+            if not cached.name:
+                country = cached.collected.countries[0] if cached.collected.countries else "us"
+                meta = await fetch_app_meta(cached.app_id, country=country)
+                if meta.get("name"):
+                    cached.name = meta.get("name")
+                    cached.icon = meta.get("icon")
+                    storage.save_analysis(cached)
             return cached
 
     collected = await collect_reviews(app_id, region=region, limit=limit)
