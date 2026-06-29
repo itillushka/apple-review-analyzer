@@ -408,6 +408,7 @@ function Home({ nav, startAnalyze }) {
           <div data-reveal="" data-hero="" style={s("font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8052ff;margin-bottom:24px")}>Apple Store Review Intelligence</div>
           <h1 data-reveal="" data-hero="" style={s("font-weight:300;font-size:clamp(54px,9vw,96px);line-height:0.85;letter-spacing:-0.04em;color:#fff;max-width:13ch")}>Find the signal in millions of voices.</h1>
           <p data-reveal="" data-hero="" style={s("font-weight:300;font-size:18px;line-height:1.5;letter-spacing:0.025em;color:#bdbdbd;max-width:54ch;margin-top:30px")}>Collect, score and decode Apple App Store reviews — sentiment, themes, and the fixes that matter, in one pass.</p>
+          <span data-reveal="" data-hero="" style={s("font-size:13px;color:#9a9a9a;letter-spacing:0.025em;margin-top:14px")}>Any app · multilingual reviews analyzed in their original language · private, no tracking.</span>
           <form data-reveal="" onSubmit={startAnalyze} style={s("margin-top:36px;display:flex;gap:12px;width:100%;max-width:560px;flex-wrap:wrap;justify-content:center")}>
             <Box as="input" type="text" placeholder="App Store URL or app ID…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:15px;letter-spacing:0.025em;padding:14px 22px;outline:none" focus="border-color:#8052ff" />
             <Box as="button" type="submit" css="background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 28px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">Analyze</Box>
@@ -515,6 +516,16 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
   const appName = APP_NAMES[appId] || ('App ' + appId);
   const subtitle = `App Store ID ${(analysis && analysis.app_id) || appId} · ${(col.countries || ['—']).join(', ')} · ${col.returned != null ? col.returned : total} reviews`;
   const engineNote = `Insights engine: ${ins.backend === 'llm' ? 'LLM (OpenRouter multi-model)' : (ins.backend || 'LLM')}.`;
+  const TAX_LABELS = { bug: 'Bugs', feature_request: 'Feature requests', ux: 'UX', pricing: 'Pricing & billing', other: 'Other' };
+  const tax = ins.taxonomy || {};
+  const taxMax = Math.max(1, ...Object.values(tax).length ? Object.values(tax) : [1]);
+  const taxonomyD = ['bug', 'feature_request', 'ux', 'pricing', 'other']
+    .filter((k) => tax[k]).map((k) => [TAX_LABELS[k], tax[k], Math.round((tax[k] / taxMax) * 100) + '%']);
+  const emo = ins.emotion_distribution || {};
+  const emoMax = Math.max(1, ...Object.values(emo).length ? Object.values(emo) : [1]);
+  const emotionD = Object.entries(emo).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => [k, v, Math.round((v / emoMax) * 100) + '%']);
+  const mismatchNote = `${ins.mismatch_count || 0} reviews show a star↔text mismatch — a high rating with negative text, or the reverse. Caught automatically.`;
   return (
     <div style={s("max-width:1200px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:60px")}>
 
@@ -633,6 +644,29 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
               <span style={s("font-size:14px;color:#9a9a9a")}>→</span>
             </Box>
           ))}
+        </div>
+      </section>
+
+      {/* taxonomy + emotion + mismatch */}
+      <section data-reveal="" style={s("display:grid;grid-template-columns:1fr 1fr;gap:24px")}>
+        <div style={s("border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:18px")}>
+          <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Issue taxonomy</span>
+          <div style={s("display:flex;flex-direction:column;gap:14px;margin-top:6px")}>
+            {taxonomyD.length === 0 && <span style={s("font-size:14px;color:#9a9a9a")}>No negative issues to categorize.</span>}
+            {taxonomyD.map(([lab, n, w]) => (
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#8052ff;border-radius:24px")}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
+            ))}
+          </div>
+          <span style={s("font-size:12px;color:#9a9a9a;letter-spacing:0.021em")}>{mismatchNote}</span>
+        </div>
+        <div style={s("border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:18px")}>
+          <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Emotion breakdown</span>
+          <div style={s("display:flex;flex-direction:column;gap:14px;margin-top:6px")}>
+            {emotionD.length === 0 && <span style={s("font-size:14px;color:#9a9a9a")}>No emotion signal.</span>}
+            {emotionD.map(([lab, n, w]) => (
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd;text-transform:capitalize")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#ffb829;border-radius:24px")}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -883,7 +917,7 @@ function About() {
       <section data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
         <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>AI / Insights pipeline</span>
         <PipelineDiagram />
-        <span style={s("font-size:12px;color:#9a9a9a")}>A LangGraph state graph routes classify → synthesize → critic across cheap top-ranked models, with a deterministic grounding check and offline prompt distillation.</span>
+        <span style={s("font-size:12px;color:#9a9a9a")}>A LangGraph state graph routes classify → synthesize → critic across cheap top-ranked models, with a deterministic grounding check. Offline prompt distillation lifts the student model's agreement with a gpt-5.5 teacher from 95% to 97% — measured, not assumed.</span>
       </section>
 
       <section data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
