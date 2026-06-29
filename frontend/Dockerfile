@@ -4,8 +4,12 @@
 
 FROM node:20-slim AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+# Copy only package.json (not the lockfile): the lockfile is generated on macOS and
+# npm's optional-dependency bug makes `npm ci` skip the Linux rollup native binary
+# (@rollup/rollup-linux-x64-gnu), which breaks `vite build`. A fresh install in the
+# Linux build image resolves the correct platform binary.
+COPY package.json ./
+RUN npm install --no-audit --no-fund
 COPY . .
 RUN npm run build
 
