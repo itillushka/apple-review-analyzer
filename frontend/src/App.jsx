@@ -4,11 +4,18 @@ import { reviewsData, negThemesData, insightsData, stack, tiers, endpoints, apiS
 import { highlight } from './highlight.jsx';
 import Particles from './Particles.jsx';
 import Loading from './Loading.jsx';
+import AppSearch from './AppSearch.jsx';
 import ArchDiagram from './ArchDiagram.jsx';
 import PipelineDiagram from './PipelineDiagram.jsx';
 import { analyze as apiAnalyze, getReviews, downloadReviews, verifyToken, setToken, clearToken, parseAppId } from './api.js';
 
 const REDUCE = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// External links surfaced on the About page. The demo video + sample report are
+// pending deliverables — they point at the repo until their real URLs exist.
+const REPO_URL = 'https://github.com/itillushka/apple-review-analyzer';
+const DEMO_VIDEO_URL = REPO_URL;
+const SAMPLE_REPORT_URL = REPO_URL;
 
 const starPath = 'M12 2 L15 9 L22 9.3 L16.5 13.8 L18.5 21 L12 17 L5.5 21 L7.5 13.8 L2 9.3 L9 9 Z';
 const StarsFull = () => (
@@ -82,11 +89,11 @@ export default function App() {
   }, []);
   const nav = (v) => (e) => { if (e) e.preventDefault(); go(v); };
 
-  const startAnalyze = (e) => {
-    if (e) e.preventDefault();
-    let val = '';
-    if (e && e.target) { const inp = e.target.querySelector ? e.target.querySelector('input') : null; val = inp ? inp.value.trim() : (e.target.value || '').trim(); }
-    const id = parseAppId(val) || '1459969523'; // empty input → demo (Nebula)
+  // Kick off an analysis from a chosen app id, an App Store URL, or a raw value
+  // (empty / unparseable → the demo app). Used by the home + dashboard search boxes.
+  const runAnalyze = (value) => {
+    const raw = String(value == null ? '' : value).trim();
+    const id = parseAppId(raw) || '1459969523'; // numeric id / URL → id; else demo (Nebula)
     setAppId(id);
     setReviewsReal(null);
     pendingRef.current = null;
@@ -213,7 +220,7 @@ export default function App() {
     else if (filter === 'negative') ok = r.sentiment === 'Negative';
     if (ok && q) ok = (r.title + ' ' + r.body).toLowerCase().includes(q);
     return ok;
-  }).map((r) => ({ ...r, ...pill(r.sentiment), meta: 'v' + r.version + ' · ' + r.date + ' · ' + r.country }));
+  }).map((r) => ({ ...r, ...pill(r.sentiment), meta: 'v' + r.version + ' · ' + r.date + ' · ' + countryName(r.country) }));
 
   const chipDefs = [
     { id: 'all', label: 'All' }, { id: '5', label: '5★' }, { id: '4', label: '4★' }, { id: '3', label: '3★' }, { id: '2', label: '2★' }, { id: '1', label: '1★' },
@@ -259,7 +266,7 @@ export default function App() {
 
         <main ref={contentRef} style={s("min-height:calc(100vh - 130px)")}>
 
-          {view === 'home' && <Home nav={nav} startAnalyze={startAnalyze} />}
+          {view === 'home' && <Home nav={nav} onAnalyze={runAnalyze} />}
           {view === 'loading' && (
             <Loading
               done={loadDone}
@@ -272,7 +279,7 @@ export default function App() {
             />
           )}
           {view === 'error' && <ErrorView errorTitle={errorTitle} onRetry={nav('home')} />}
-          {view === 'dashboard' && <Dashboard nav={nav} lineRef={lineRef} openDownload={() => setModalOpen(true)} analysis={analysis} appId={appId} onTheme={setActiveTheme} startAnalyze={startAnalyze} />}
+          {view === 'dashboard' && <Dashboard nav={nav} lineRef={lineRef} openDownload={() => setModalOpen(true)} analysis={analysis} appId={appId} onTheme={setActiveTheme} onAnalyze={runAnalyze} />}
           {view === 'reviews' && (
             <Reviews
               chipDefs={chipDefs} filter={filter} setFilter={setFilter}
@@ -375,7 +382,7 @@ export default function App() {
         <footer style={s("border-top:1px solid rgba(255,255,255,0.10)")}>
           <div style={s("max-width:1200px;margin:0 auto;padding:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px")}>
             <span style={s("font-size:12px;color:#9a9a9a;letter-spacing:0.025em")}>A test assignment for OBRIO / Nebula — built by Illia Pastushok</span>
-            <span style={s("font-size:12px;color:#9a9a9a;letter-spacing:0.025em")}>Data from Apple's public RSS · no tracking · <Box as="a" href="#" onClick={(e) => e.preventDefault()} css="color:#9a9a9a;text-decoration:none" hover="color:#fff">GitHub ↗</Box></span>
+            <span style={s("font-size:12px;color:#9a9a9a;letter-spacing:0.025em")}>Data from Apple's public RSS · no tracking · <Box as="a" href={REPO_URL} target="_blank" rel="noopener noreferrer" css="color:#9a9a9a;text-decoration:none" hover="color:#fff">GitHub ↗</Box></span>
           </div>
         </footer>
 
@@ -395,7 +402,7 @@ export default function App() {
             <form onSubmit={submitToken} style={s("display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px")}>
               <Box as="input" type="password" placeholder="Access token…" autoFocus
                 css={"background:#000;border:1px solid " + (tokenError ? '#ffb829' : '#bdbdbd') + ";border-radius:24px;color:#fff;font-size:15px;letter-spacing:0.025em;padding:14px 22px;outline:none;text-align:center"}
-                focus="border-color:#8052ff" />
+                focus="border:1px solid #8052ff" />
               {tokenError && <span style={s("font-size:13px;color:#ffb829;letter-spacing:0.025em")}>That token didn't match. Try again.</span>}
               <Box as="button" type="submit" css="background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 28px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">Unlock</Box>
             </form>
@@ -408,7 +415,7 @@ export default function App() {
 }
 
 /* ============================ HOME ============================ */
-function Home({ nav, startAnalyze }) {
+function Home({ nav, onAnalyze }) {
   return (
     <div>
       <section style={s("position:relative;min-height:78vh;display:flex;align-items:center;justify-content:center;overflow:hidden")}>
@@ -417,11 +424,8 @@ function Home({ nav, startAnalyze }) {
           <h1 data-reveal="" data-hero="" style={s("font-weight:300;font-size:clamp(54px,9vw,96px);line-height:0.85;letter-spacing:-0.04em;color:#fff;max-width:13ch")}>Find the signal in millions of voices.</h1>
           <p data-reveal="" data-hero="" style={s("font-weight:300;font-size:18px;line-height:1.5;letter-spacing:0.025em;color:#bdbdbd;max-width:54ch;margin-top:30px")}>Collect, score and decode Apple App Store reviews — sentiment, themes, and the fixes that matter, in one pass.</p>
           <span data-reveal="" data-hero="" style={s("font-size:13px;color:#9a9a9a;letter-spacing:0.025em;margin-top:14px")}>Any app · multilingual reviews analyzed in their original language · private, no tracking.</span>
-          <form data-reveal="" onSubmit={startAnalyze} style={s("margin-top:36px;display:flex;gap:12px;width:100%;max-width:560px;flex-wrap:wrap;justify-content:center")}>
-            <Box as="input" type="text" placeholder="App Store URL or app ID…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:15px;letter-spacing:0.025em;padding:14px 22px;outline:none" focus="border-color:#8052ff" />
-            <Box as="button" type="submit" css="background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 28px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">Analyze</Box>
-          </form>
-          <div data-reveal="" style={s("margin-top:18px;font-size:13px;color:#9a9a9a;letter-spacing:0.025em")}>Try: <Box as="a" href="#" onClick={startAnalyze} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Nebula (1459969523)</Box> · <Box as="a" href="#" onClick={nav('compare')} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Co–Star (1264782561)</Box></div>
+          <div style={s("margin-top:36px;width:100%;display:flex;justify-content:center")}><AppSearch onAnalyze={onAnalyze} /></div>
+          <div data-reveal="" style={s("margin-top:18px;font-size:13px;color:#9a9a9a;letter-spacing:0.025em")}>Try: <Box as="a" href="#" onClick={(e) => { e.preventDefault(); onAnalyze('1459969523'); }} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Nebula (1459969523)</Box> · <Box as="a" href="#" onClick={nav('compare')} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Co–Star (1264782561)</Box></div>
         </div>
       </section>
 
@@ -476,23 +480,36 @@ const versionBars = [['48px', '8.2'], ['62px', '8.3'], ['40px', '8.4'], ['74px',
 
 const APP_NAMES = { '1459969523': 'Nebula: Spiritual Guidance', '1264782561': 'Co–Star' };
 
-function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, startAnalyze }) {
-  const cardHover = "border-color:rgba(128,82,255,0.6)";
+// Storefront code → full country name, for every storefront in the region rosters.
+const COUNTRY_NAMES = {
+  gb: 'United Kingdom', ie: 'Ireland', de: 'Germany', fr: 'France', it: 'Italy',
+  es: 'Spain', nl: 'Netherlands', se: 'Sweden', no: 'Norway', dk: 'Denmark',
+  fi: 'Finland', pl: 'Poland', pt: 'Portugal', at: 'Austria', be: 'Belgium',
+  ch: 'Switzerland', cz: 'Czechia', gr: 'Greece', hu: 'Hungary', ro: 'Romania',
+  us: 'United States', ca: 'Canada', au: 'Australia', nz: 'New Zealand',
+  in: 'India', jp: 'Japan', kr: 'South Korea', hk: 'Hong Kong', tw: 'Taiwan',
+  sg: 'Singapore', id: 'Indonesia', th: 'Thailand', vn: 'Vietnam', ph: 'Philippines',
+  my: 'Malaysia', ae: 'United Arab Emirates', sa: 'Saudi Arabia', il: 'Israel', tr: 'Türkiye',
+  za: 'South Africa', ng: 'Nigeria', eg: 'Egypt', ke: 'Kenya', ma: 'Morocco',
+  gh: 'Ghana', tz: 'Tanzania', ug: 'Uganda', dz: 'Algeria', tn: 'Tunisia',
+};
+const countryName = (c) => COUNTRY_NAMES[String(c || '').toLowerCase()] || String(c || '').toUpperCase();
+const countryList = (arr) => (arr && arr.length ? arr.map(countryName).join(', ') : '—');
+
+function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAnalyze }) {
+  const cardHover = "border:1px solid rgba(128,82,255,0.6)";
 
   // No analysis loaded yet (e.g. arrived via the nav "Analyze" link, not a search):
-  // show the same app-id search field as the home hero instead of any placeholder
-  // numbers. Submitting kicks off the normal loading → dashboard flow via startAnalyze.
+  // show the same app search field as the home hero instead of any placeholder
+  // numbers. Submitting kicks off the normal loading → dashboard flow via onAnalyze.
   if (!analysis) {
     return (
       <div style={s("max-width:1200px;margin:0 auto;padding:120px 24px;min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center")}>
         <div data-reveal="" style={s("font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8052ff;margin-bottom:20px")}>Apple Store Review Intelligence</div>
         <h1 data-reveal="" style={s("font-weight:300;font-size:clamp(40px,6vw,64px);line-height:0.9;letter-spacing:-0.04em;color:#fff;max-width:16ch")}>Analyze any App Store app.</h1>
-        <p data-reveal="" style={s("font-weight:300;font-size:16px;line-height:1.5;letter-spacing:0.025em;color:#bdbdbd;max-width:50ch;margin-top:22px")}>Paste an App Store URL or numeric app ID. We pull 100 recent reviews and score sentiment, themes and the fixes that matter — in one pass.</p>
-        <form data-reveal="" onSubmit={startAnalyze} style={s("margin-top:32px;display:flex;gap:12px;width:100%;max-width:560px;flex-wrap:wrap;justify-content:center")}>
-          <Box as="input" type="text" placeholder="App Store URL or app ID…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:15px;letter-spacing:0.025em;padding:14px 22px;outline:none" focus="border-color:#8052ff" />
-          <Box as="button" type="submit" css="background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 28px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">Analyze</Box>
-        </form>
-        <div data-reveal="" style={s("margin-top:18px;font-size:13px;color:#9a9a9a;letter-spacing:0.025em")}>Try: <Box as="a" href="#" onClick={startAnalyze} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Nebula (1459969523)</Box> · <Box as="a" href="#" onClick={nav('compare')} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Co–Star (1264782561)</Box></div>
+        <p data-reveal="" style={s("font-weight:300;font-size:16px;line-height:1.5;letter-spacing:0.025em;color:#bdbdbd;max-width:50ch;margin-top:22px;margin-bottom:32px")}>Search by name, paste an App Store URL or numeric app ID. We pull 100 recent reviews and score sentiment, themes and the fixes that matter — in one pass.</p>
+        <AppSearch onAnalyze={onAnalyze} autoFocus />
+        <div data-reveal="" style={s("margin-top:18px;font-size:13px;color:#9a9a9a;letter-spacing:0.025em")}>Try: <Box as="a" href="#" onClick={(e) => { e.preventDefault(); onAnalyze('1459969523'); }} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Nebula (1459969523)</Box> · <Box as="a" href="#" onClick={nav('compare')} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Co–Star (1264782561)</Box></div>
       </div>
     );
   }
@@ -542,7 +559,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
     ? m.by_version.slice(0, 6).map((v) => [Math.round((v.average / 5) * 90) + 'px', v.version])
     : versionBars;
   const appName = (analysis && analysis.name) || APP_NAMES[appId] || ('App ' + appId);
-  const subtitle = `App Store ID ${(analysis && analysis.app_id) || appId} · ${(col.countries || ['—']).join(', ')} · ${col.returned != null ? col.returned : total} reviews`;
+  const subtitle = `App Store ID ${(analysis && analysis.app_id) || appId} · ${countryList(col.countries)} · ${col.returned != null ? col.returned : total} reviews`;
   const engineNote = `Insights engine: ${ins.backend === 'llm' ? 'LLM (OpenRouter multi-model)' : (ins.backend || 'LLM')}.`;
   const TAX_LABELS = { bug: 'Bugs', feature_request: 'Feature requests', ux: 'UX', pricing: 'Pricing & billing', other: 'Other' };
   const tax = ins.taxonomy || {};
@@ -570,7 +587,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
           </div>
         </div>
         <div style={s("display:flex;gap:12px;flex-wrap:wrap")}>
-          <Box as="button" onClick={nav('reviews')} css="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:24px;color:#bdbdbd;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:13px 24px;cursor:pointer;transition:all .2s" hover="color:#fff;border-color:#ffffff">View all reviews →</Box>
+          <Box as="button" onClick={nav('reviews')} css="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:24px;color:#bdbdbd;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:13px 24px;cursor:pointer;transition:all .2s" hover="color:#fff;border:1px solid #ffffff">View all reviews →</Box>
           <Box as="button" onClick={openDownload} css="background:transparent;border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:13px 24px;cursor:pointer;transition:background .2s" hover="background:rgba(255,255,255,0.06)">Download · JSON/CSV</Box>
         </div>
       </div>
@@ -588,7 +605,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
         <Box data-reveal="" css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:12px" hover={cardHover}>
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Total reviews</span>
           <span data-count={String(total)} style={s("font-weight:300;font-size:48px;line-height:1;letter-spacing:-0.02em")}>{total}</span>
-          <span style={s("font-size:12px;color:#bdbdbd")}>{(col.countries || ['—']).join(', ')}</span>
+          <span style={s("font-size:12px;color:#bdbdbd")}>{countryList(col.countries)}</span>
         </Box>
         <Box data-reveal="" css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:12px" hover={cardHover}>
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Positive</span>
@@ -705,7 +722,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, start
         <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>What to fix</span>
         <div style={s("display:grid;grid-template-columns:1fr 1fr;gap:24px")}>
           {insightsD.map((it, i) => (
-            <Box key={i} css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;gap:18px;align-items:flex-start" hover="border-color:rgba(128,82,255,0.5)">
+            <Box key={i} css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;gap:18px;align-items:flex-start" hover="border:1px solid rgba(128,82,255,0.5)">
               <span style={s("width:8px;height:8px;border-radius:50%;background:#15846e;flex-shrink:0;margin-top:10px")}></span>
               <div style={s("display:flex;flex-direction:column;gap:8px")}>
                 <span style={s("font-weight:600;font-size:14px;letter-spacing:0.05em;text-transform:uppercase;color:#8052ff")}>{it.tag}</span>
@@ -738,7 +755,7 @@ function Reviews({ chipDefs, filter, setFilter, search, setSearch, visibleReview
           })}
         </div>
         <div style={s("display:flex;gap:12px;flex-wrap:wrap;align-items:center")}>
-          <Box as="input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reviews…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:14px;padding:12px 20px;outline:none" focus="border-color:#8052ff" />
+          <Box as="input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reviews…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:14px;padding:12px 20px;outline:none" focus="border:1px solid #8052ff" />
           <Box as="button" onClick={openDownload} css="background:transparent;border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:12px 22px;cursor:pointer" hover="background:rgba(255,255,255,0.06)">Download · JSON/CSV</Box>
         </div>
       </div>
@@ -969,8 +986,12 @@ function About() {
       </section>
 
       <section data-reveal="" style={s("display:flex;gap:14px;flex-wrap:wrap")}>
-        {['GitHub ↗', 'Demo video ↗', 'Sample report ↗'].map((x) => (
-          <Box key={x} as="a" href="#" onClick={(e) => e.preventDefault()} css="border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 26px;text-decoration:none" hover="background:rgba(255,255,255,0.06)">{x}</Box>
+        {[
+          { label: 'GitHub ↗', href: REPO_URL },
+          { label: 'Demo video ↗', href: DEMO_VIDEO_URL },
+          { label: 'Sample report ↗', href: SAMPLE_REPORT_URL },
+        ].map(({ label, href }) => (
+          <Box key={label} as="a" href={href} target="_blank" rel="noopener noreferrer" css="border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 26px;text-decoration:none" hover="background:rgba(255,255,255,0.06)">{label}</Box>
         ))}
       </section>
     </div>
@@ -993,7 +1014,7 @@ function EndpointCode({ ep }) {
           <button onClick={() => setTab('curl')} style={{ ...s("background:transparent;border:none;font-family:'Space Mono',monospace;font-size:12px;padding:6px 10px;cursor:pointer;transition:color .2s"), borderBottom: '2px solid ' + (tab === 'curl' ? '#8052ff' : 'transparent'), color: tab === 'curl' ? '#ffffff' : '#9a9a9a' }}>cURL</button>
           <button onClick={() => setTab('json')} style={{ ...s("background:transparent;border:none;font-family:'Space Mono',monospace;font-size:12px;padding:6px 10px;cursor:pointer;transition:color .2s"), borderBottom: '2px solid ' + (tab === 'json' ? '#8052ff' : 'transparent'), color: tab === 'json' ? '#ffffff' : '#9a9a9a' }}>JSON</button>
         </div>
-        <Box as="button" onClick={copy} css="background:transparent;border:1px solid rgba(255,255,255,0.16);color:#9a9a9a;font-family:'Space Mono',monospace;font-size:11px;padding:5px 12px;border-radius:24px;cursor:pointer;transition:all .2s" hover="color:#fff;border-color:rgba(255,255,255,0.4)">Copy</Box>
+        <Box as="button" onClick={copy} css="background:transparent;border:1px solid rgba(255,255,255,0.16);color:#9a9a9a;font-family:'Space Mono',monospace;font-size:11px;padding:5px 12px;border-radius:24px;cursor:pointer;transition:all .2s" hover="color:#fff;border:1px solid rgba(255,255,255,0.4)">Copy</Box>
       </div>
       <div style={s("padding:18px;overflow-x:auto")}>
         <pre key={ep.id + tab} style={{ margin: 0, fontFamily: "'Space Mono', monospace", fontSize: '12.5px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', animation: REDUCE ? 'none' : 'ra-up .25s cubic-bezier(.16,1,.3,1) both' }}>{highlight(codeText, tab === 'json')}</pre>
