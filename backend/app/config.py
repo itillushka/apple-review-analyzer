@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     port: int = 8100
     # Directory for the JSON cache of collection state (incremental top-up).
     data_dir: str = "data"
+    # Access token gating the data endpoints (abuse / credit-drain protection).
+    # When unset, the API is open (local dev); when set, callers must send it.
+    access_token: str | None = None
     # Origins allowed to call the API from a browser (Vite dev + same-host).
     cors_origins: list[str] = [
         "http://localhost:5173",

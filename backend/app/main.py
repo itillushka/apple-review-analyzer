@@ -16,7 +16,7 @@ import csv
 import io
 from typing import Awaitable, TypeVar
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
@@ -47,6 +47,18 @@ _Region = Query("europe", pattern="^(europe|asia|africa)$")
 _Limit = Query(100, ge=1, le=500)
 
 
+def require_token(x_access_token: str | None = Header(default=None)) -> None:
+    """Gate the data endpoints behind an access token (when one is configured).
+
+    No token configured → open (local dev). Configured → callers must send a matching
+    ``X-Access-Token`` header, or get 401. This is the real abuse/credit-drain guard;
+    the frontend's token screen is just the UX in front of it.
+    """
+    expected = settings.access_token
+    if expected and x_access_token != expected:
+        raise HTTPException(status_code=401, detail="Invalid or missing access token.")
+
+
 async def _guard(coro: Awaitable[_T]) -> _T:
     """Run a service coroutine, mapping domain errors to HTTP status codes."""
     try:
@@ -72,9 +84,16 @@ def root() -> dict[str, str]:
     return {"service": settings.app_name, "docs": "/docs", "health": "/health"}
 
 
+@app.get("/auth/verify", tags=["system"], dependencies=[Depends(require_token)])
+def auth_verify() -> dict[str, bool]:
+    """Return 200 if the supplied access token is valid (used by the frontend gate)."""
+    return {"ok": True}
+
+
 # --- collection ---
 
-@app.post("/collect", tags=["reviews"], response_model=CollectionMeta)
+@app.post("/collect", tags=["reviews"], response_model=CollectionMeta,
+          dependencies=[Depends(require_token)])
 async def collect(payload: CollectRequest) -> CollectionMeta:
     """Collect reviews for an app and return collection metadata (count, sources)."""
     result = await _guard(
@@ -83,7 +102,7 @@ async def collect(payload: CollectRequest) -> CollectionMeta:
     return result.meta
 
 
-@app.get("/reviews/download", tags=["reviews"])
+@app.get("/reviews/download", tags=["reviews"], dependencies=[Depends(require_token)])
 async def download_reviews(
     app_id: str = _AppId,
     region: str = _Region,
@@ -109,7 +128,7 @@ async def download_reviews(
 
 # --- analysis ---
 
-@app.get("/metrics", tags=["analysis"])
+@app.get("/metrics", tags=["analysis"], dependencies=[Depends(require_token)])
 async def metrics(app_id: str = _AppId, region: str = _Region, limit: int = _Limit) -> dict:
     """Rating metrics only — average, distribution, by-version, trend (no LLM)."""
     collected, rating_metrics = await _guard(
@@ -118,7 +137,8 @@ async def metrics(app_id: str = _AppId, region: str = _Region, limit: int = _Lim
     return {"collected": collected, "metrics": rating_metrics}
 
 
-@app.get("/insights", tags=["analysis"], response_model=Insights)
+@app.get("/insights", tags=["analysis"], response_model=Insights,
+         dependencies=[Depends(require_token)])
 async def insights(
     app_id: str = _AppId,
     region: str = _Region,
@@ -132,7 +152,8 @@ async def insights(
     return analysis.insights
 
 
-@app.get("/analyze", tags=["analysis"], response_model=AnalysisResult)
+@app.get("/analyze", tags=["analysis"], response_model=AnalysisResult,
+         dependencies=[Depends(require_token)])
 async def analyze(
     app_id: str = _AppId,
     region: str = _Region,

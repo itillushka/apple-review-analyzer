@@ -6,13 +6,21 @@ local collection cache after the first run, so they stay fast and stable.
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.main import app
 
 client = TestClient(app)
 
 NEBULA = "1459969523"
+
+
+@pytest.fixture(autouse=True)
+def _disable_auth(monkeypatch):
+    """Most tests run with the access gate off; the auth test re-enables it."""
+    monkeypatch.setattr(settings, "access_token", None)
 
 
 def test_health():
@@ -42,6 +50,16 @@ def test_metrics_endpoint_live():
     body = r.json()
     assert body["metrics"]["total"] >= 1
     assert set(body["metrics"]["distribution"]) == {"1", "2", "3", "4", "5"}
+
+
+def test_access_token_gate(monkeypatch):
+    monkeypatch.setattr(settings, "access_token", "s3cret")
+    # No token → 401 on a gated endpoint and on the verify check.
+    assert client.get("/auth/verify").status_code == 401
+    assert client.get("/metrics", params={"app_id": NEBULA}).status_code == 401
+    # Correct token → verify passes (no network needed).
+    ok = client.get("/auth/verify", headers={"X-Access-Token": "s3cret"})
+    assert ok.status_code == 200 and ok.json() == {"ok": True}
 
 
 def test_download_csv_live():
