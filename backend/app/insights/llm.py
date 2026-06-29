@@ -7,6 +7,7 @@ LLM calls are traced via Langfuse when its keys are configured.
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import os
@@ -37,8 +38,14 @@ def llm_available() -> bool:
 
 @lru_cache(maxsize=1)
 def _client():
-    """OpenAI-compatible client → OpenRouter; Langfuse-wrapped when configured."""
+    """OpenAI-compatible client → OpenRouter; Langfuse-wrapped when configured.
+
+    A per-request ``timeout`` bounds any single model call (so a slow/hung provider
+    can never stall the pipeline) and ``max_retries=0`` disables the SDK's own retry
+    loop — we run a tighter, JSON-aware retry in ``_chat_json``.
+    """
     base_url, api_key = settings.openrouter_base_url, settings.openrouter_api_key
+    kwargs = dict(base_url=base_url, api_key=api_key, timeout=settings.llm_timeout, max_retries=0)
     if settings.langfuse_public_key and settings.langfuse_secret_key:
         os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.langfuse_public_key)
         os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.langfuse_secret_key)
@@ -47,12 +54,12 @@ def _client():
         try:
             from langfuse.openai import OpenAI  # drop-in, auto-traces
 
-            return OpenAI(base_url=base_url, api_key=api_key)
+            return OpenAI(**kwargs)
         except Exception as exc:  # pragma: no cover - tracing is optional
             logger.warning("Langfuse OpenAI wrapper unavailable (%s); tracing off.", exc)
     from openai import OpenAI
 
-    return OpenAI(base_url=base_url, api_key=api_key)
+    return OpenAI(**kwargs)
 
 
 def _parse_json(text: str) -> dict | None:
@@ -72,20 +79,27 @@ def _parse_json(text: str) -> dict | None:
     return None
 
 
-def _chat_json(model: str, system: str, user: str, *, retries: int = 2) -> dict:
-    """Call a model and return parsed JSON, retrying on errors / non-JSON output."""
+def _chat_json(
+    model: str, system: str, user: str, *, retries: int = 2, max_tokens: int | None = None
+) -> dict:
+    """Call a model and return parsed JSON, retrying on errors / non-JSON output.
+
+    Each call is bounded by the client-level request timeout; ``max_tokens`` optionally
+    caps the completion length (used for the short, structured classify calls).
+    """
     client = _client()
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
+    extra = {"max_tokens": max_tokens} if max_tokens else {}
     last = ""
     for attempt in range(retries + 1):
         try:
             resp = client.chat.completions.create(
-                model=model, messages=messages, temperature=0.1
+                model=model, messages=messages, temperature=0.1, **extra
             )
-        except Exception as exc:  # transient provider/rate-limit errors → retry
+        except Exception as exc:  # transient provider/rate-limit/timeout errors → retry
             last = str(exc)
             logger.warning("LLM call error on %s (attempt %d): %s", model, attempt, last[:120])
             continue
@@ -124,34 +138,50 @@ def _classify_fewshot() -> str:
     return "Labeled examples (text -> sentiment):\n" + "\n".join(lines) + "\n\n"
 
 
-def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
-    """Classify each review's sentiment + emotion in batches via the classify model."""
-    results: dict[str, tuple[str, str | None]] = {}
-    system = "You are a precise classifier for app reviews. Output strict JSON only."
-    for start in range(0, len(reviews), _CLASSIFY_BATCH):
-        batch = reviews[start : start + _CLASSIFY_BATCH]
-        items = [{"id": r.id, "text": _text(r)} for r in batch]
-        user = (
-            _classify_fewshot()  # distilled examples (empty until distillation runs)
-            + "For each review, classify the sentiment (positive, neutral, or negative) and the "
-            "dominant emotion (one of: joy, satisfaction, anger, frustration, disappointment, "
-            "confusion, neutral).\n"
-            f"Reviews (JSON):\n{json.dumps(items, ensure_ascii=False)}\n\n"
-            'Return JSON: {"results":[{"id":"<id>","sentiment":"...","emotion":"..."}]}'
+_CLASSIFY_SYSTEM = "You are a precise classifier for app reviews. Output strict JSON only."
+
+
+def _classify_one_batch(batch: list[Review]) -> dict[str, tuple[str, str | None]]:
+    """Classify a single batch of reviews → {review_id: (sentiment, emotion)}."""
+    items = [{"id": r.id, "text": _text(r)} for r in batch]
+    user = (
+        _classify_fewshot()  # distilled examples (empty until distillation runs)
+        + "For each review, classify the sentiment (positive, neutral, or negative) and the "
+        "dominant emotion (one of: joy, satisfaction, anger, frustration, disappointment, "
+        "confusion, neutral).\n"
+        f"Reviews (JSON):\n{json.dumps(items, ensure_ascii=False)}\n\n"
+        'Return JSON: {"results":[{"id":"<id>","sentiment":"...","emotion":"..."}]}'
+    )
+    try:
+        data = _chat_json(
+            settings.model_classify, _CLASSIFY_SYSTEM, user, max_tokens=settings.classify_max_tokens
         )
-        try:
-            data = _chat_json(settings.model_classify, system, user)
-        except Exception as exc:
-            logger.warning("classify batch failed (%s); leaving batch neutral.", exc)
-            continue
-        for row in data.get("results", []):
-            sentiment = str(row.get("sentiment", "")).lower().strip()
-            emotion = str(row.get("emotion", "")).lower().strip()
-            if sentiment in _SCORE:
-                results[str(row.get("id"))] = (
-                    sentiment,
-                    emotion if emotion in _EMOTIONS else None,
-                )
+    except Exception as exc:
+        logger.warning("classify batch failed (%s); leaving batch neutral.", exc)
+        return {}
+    out: dict[str, tuple[str, str | None]] = {}
+    for row in data.get("results", []):
+        sentiment = str(row.get("sentiment", "")).lower().strip()
+        emotion = str(row.get("emotion", "")).lower().strip()
+        if sentiment in _SCORE:
+            out[str(row.get("id"))] = (sentiment, emotion if emotion in _EMOTIONS else None)
+    return out
+
+
+def _classify_sentiment(reviews: list[Review]) -> list[ReviewSentiment]:
+    """Classify every review's sentiment + emotion via the classify model.
+
+    Batches are sent **concurrently** (each call is timeout-bounded): for ~100 reviews
+    this turns four sequential round-trips into one wall-clock latency. Per-request
+    failures degrade that batch to neutral rather than sinking the whole analysis.
+    """
+    batches = [reviews[i : i + _CLASSIFY_BATCH] for i in range(0, len(reviews), _CLASSIFY_BATCH)]
+    results: dict[str, tuple[str, str | None]] = {}
+    if batches:
+        workers = min(len(batches), 6)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            for partial in pool.map(_classify_one_batch, batches):
+                results.update(partial)
 
     out: list[ReviewSentiment] = []
     for r in reviews:

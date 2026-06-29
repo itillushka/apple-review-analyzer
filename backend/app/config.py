@@ -49,9 +49,24 @@ class Settings(BaseSettings):
     # (per OpenRouter usage rankings, 2026). Verify ids/prices at openrouter.ai/models.
     # The runtime critic is deterministic (grounding check) — no premium model per request;
     # the premium OpenAI model below is used only at dev-time (prompt distillation, phase 3b).
-    model_classify: str = "tencent/hy3-preview"  # #2 by tokens, cheapest
-    model_synthesize: str = "deepseek/deepseek-v4-flash"  # #1 by tokens, 1M ctx
+    # classify: a fast, cheap, non-reasoning instruct model — sentiment labelling needs
+    # no chain-of-thought. Benchmarked at 100% accuracy on a multilingual gold set in
+    # ~1.5s; a reasoning model (tencent/hy3-preview) matched the accuracy but took ~19x
+    # longer and burned ~2000 reasoning tokens per call (the cause of multi-minute hangs).
+    model_classify: str = "qwen/qwen3-30b-a3b-instruct-2507"  # fast, cheap, non-reasoning
+    # synthesize: a fast model with clean structured output for theme/insight extraction.
+    # Benchmarked at ~1.7s on a 40-review prompt; deepseek-v4-flash matched the quality but
+    # ran away to ~6500 completion tokens (~39s) — the second cause of multi-minute hangs.
+    # Distinct vendor from classify (Google vs Alibaba) keeps the routing genuinely multi-model.
+    model_synthesize: str = "google/gemini-2.5-flash-lite"  # fast, clean JSON (themes/insights)
     model_teacher: str = "gpt-5.5"  # OpenAI, dev-time distillation/eval only
+
+    # Per-request LLM timeout (seconds). Bounds any single model call so a slow/hung
+    # provider can never stall the analysis pipeline; we run our own retry loop on top.
+    llm_timeout: float = 60.0
+    # Hard cap on completion tokens for the (structured, short) classify calls — a
+    # second guard against a model running away on reasoning/verbose output.
+    classify_max_tokens: int = 1200
 
     # Optional paid escalation at runtime / teacher model for dev-time distillation.
     openai_api_key: str | None = None

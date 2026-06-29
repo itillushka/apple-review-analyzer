@@ -10,8 +10,25 @@ export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
 export class AuthError extends Error {}
 
-async function req(path) {
-  const res = await fetch(`${BASE}${path}`, { headers: { 'X-Access-Token': getToken() } });
+// Every request is bounded by a client-side timeout (via AbortController) so a slow
+// or hung backend surfaces a clear error instead of an endless spinner.
+async function req(path, { timeoutMs = 25000 } = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'X-Access-Token': getToken() },
+      signal: ctrl.signal,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('The analysis took too long and timed out. Please try again.');
+    }
+    throw new Error('Network error — could not reach the API.');
+  } finally {
+    clearTimeout(timer);
+  }
   if (res.status === 401) {
     clearToken();
     throw new AuthError('Unauthorized');
@@ -30,8 +47,12 @@ async function req(path) {
 
 export const verifyToken = () => req('/auth/verify');
 
+// Analysis runs the LLM pipeline (collect → classify → synthesize), so it gets a
+// generous timeout; a healthy run completes in well under this.
 export const analyze = (appId, region = 'europe', limit = 100) =>
-  req(`/analyze?app_id=${encodeURIComponent(appId)}&region=${region}&limit=${limit}`);
+  req(`/analyze?app_id=${encodeURIComponent(appId)}&region=${region}&limit=${limit}`, {
+    timeoutMs: 90000,
+  });
 
 export const getReviews = (appId, region = 'europe') =>
   req(`/reviews?app_id=${encodeURIComponent(appId)}&region=${region}`);
