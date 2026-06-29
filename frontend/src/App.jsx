@@ -264,7 +264,7 @@ export default function App() {
             </div>
           )}
           {view === 'error' && <ErrorView errorTitle={errorTitle} onRetry={nav('home')} />}
-          {view === 'dashboard' && <Dashboard nav={nav} lineRef={lineRef} openDownload={() => setModalOpen(true)} analysis={analysis} appId={appId} onTheme={setActiveTheme} />}
+          {view === 'dashboard' && <Dashboard nav={nav} lineRef={lineRef} openDownload={() => setModalOpen(true)} analysis={analysis} appId={appId} onTheme={setActiveTheme} startAnalyze={startAnalyze} />}
           {view === 'reviews' && (
             <Reviews
               chipDefs={chipDefs} filter={filter} setFilter={setFilter}
@@ -468,8 +468,26 @@ const versionBars = [['48px', '8.2'], ['62px', '8.3'], ['40px', '8.4'], ['74px',
 
 const APP_NAMES = { '1459969523': 'Nebula: Spiritual Guidance', '1264782561': 'Co–Star' };
 
-function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
+function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, startAnalyze }) {
   const cardHover = "border-color:rgba(128,82,255,0.6)";
+
+  // No analysis loaded yet (e.g. arrived via the nav "Analyze" link, not a search):
+  // show the same app-id search field as the home hero instead of any placeholder
+  // numbers. Submitting kicks off the normal loading → dashboard flow via startAnalyze.
+  if (!analysis) {
+    return (
+      <div style={s("max-width:1200px;margin:0 auto;padding:120px 24px;min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center")}>
+        <div data-reveal="" style={s("font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8052ff;margin-bottom:20px")}>Apple Store Review Intelligence</div>
+        <h1 data-reveal="" style={s("font-weight:300;font-size:clamp(40px,6vw,64px);line-height:0.9;letter-spacing:-0.04em;color:#fff;max-width:16ch")}>Analyze any App Store app.</h1>
+        <p data-reveal="" style={s("font-weight:300;font-size:16px;line-height:1.5;letter-spacing:0.025em;color:#bdbdbd;max-width:50ch;margin-top:22px")}>Paste an App Store URL or numeric app ID. We pull 100 recent reviews and score sentiment, themes and the fixes that matter — in one pass.</p>
+        <form data-reveal="" onSubmit={startAnalyze} style={s("margin-top:32px;display:flex;gap:12px;width:100%;max-width:560px;flex-wrap:wrap;justify-content:center")}>
+          <Box as="input" type="text" placeholder="App Store URL or app ID…" css="flex:1;min-width:240px;background:rgba(0,0,0,0.55);border:1px solid #bdbdbd;border-radius:24px;color:#fff;font-size:15px;letter-spacing:0.025em;padding:14px 22px;outline:none" focus="border-color:#8052ff" />
+          <Box as="button" type="submit" css="background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 28px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">Analyze</Box>
+        </form>
+        <div data-reveal="" style={s("margin-top:18px;font-size:13px;color:#9a9a9a;letter-spacing:0.025em")}>Try: <Box as="a" href="#" onClick={startAnalyze} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Nebula (1459969523)</Box> · <Box as="a" href="#" onClick={nav('compare')} css="color:#bdbdbd;text-decoration:none" hover="color:#fff">Co–Star (1264782561)</Box></div>
+      </div>
+    );
+  }
 
   // Derive every displayed value from the real analysis (fallback to demo numbers).
   const m = (analysis && analysis.metrics) || {};
@@ -485,10 +503,11 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
   const netRaw = ((sp.positive || 0) - (sp.negative || 0)) / 100;
   const netSent = (netRaw >= 0 ? '+' : '') + netRaw.toFixed(2);
   const dist = m.distribution || { '5': 72, '4': 18, '3': 5, '2': 3, '1': 2 };
-  const distMax = Math.max(1, ...Object.values(dist));
+  // Bars read as a share of all reviews — the five rows sum to ~100%, not relative to the tallest bar.
+  const distTotal = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
   const distRowsD = ['5', '4', '3', '2', '1'].map((k) => {
     const c = dist[k] || 0;
-    return [k + '★', Math.round((c / distMax) * 100) + '%', String(c)];
+    return [k + '★', Math.round((c / distTotal) * 100) + '%', String(c)];
   });
   const C = 2 * Math.PI * 60; // donut circumference
   const posLen = (posPct / 100) * C, neuLen = (neuPct / 100) * C, negLen = (negPct / 100) * C;
@@ -802,7 +821,7 @@ function Compare() {
     ['Net sentiment', net(A.insights), net(B.insights)],
     ['Top negative theme', topNeg(A.insights), topNeg(B.insights)],
   ];
-  const distOf = (mm) => { const mx = Math.max(1, ...Object.values(mm.distribution)); return (k) => Math.round((mm.distribution[k] || 0) / mx * 100) + '%'; };
+  const distOf = (mm) => { const tot = Object.values(mm.distribution).reduce((a, b) => a + b, 0) || 1; return (k) => Math.round((mm.distribution[k] || 0) / tot * 100) + '%'; };
   const dA = distOf(A.metrics), dB = distOf(B.metrics);
   const cmpDist = ['5', '4', '3', '2', '1'].map((k) => [k + '★', dA(k), dB(k)]);
   const painOf = (ins) => ins.negative_themes.slice(0, 3).map((t) => [t.theme, Math.round(t.share) + '%', Math.min(100, Math.round(t.share)) + '%']);
