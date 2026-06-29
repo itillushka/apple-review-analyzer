@@ -730,6 +730,47 @@ function Donut({ value, dash1, off2, dash2, off3, dash3, label }) {
 }
 
 function Compare() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    Promise.all([apiAnalyze('1459969523', 'europe', 100), apiAnalyze('1264782561', 'europe', 100)])
+      .then(setData)
+      .catch((e) => setErr(e.message || 'Compare failed'));
+  }, []);
+  if (err) return (
+    <div style={s("max-width:1200px;margin:0 auto;padding:96px 24px;text-align:center;color:#9a9a9a")}>
+      <div style={s("font-size:24px;color:#fff;font-weight:300")}>Couldn't compare</div>
+      <div style={s("margin-top:8px;font-size:14px")}>{err}</div>
+    </div>
+  );
+  if (!data) return (
+    <div style={s("max-width:1200px;margin:0 auto;padding:96px 24px;text-align:center;color:#9a9a9a")}>
+      <div style={s("font-size:24px;color:#fff;font-weight:300")}>Comparing Nebula vs Co–Star…</div>
+      <div style={s("margin-top:8px;font-size:14px")}>First run fetches Co–Star live — up to ~1–2 min.</div>
+    </div>
+  );
+  const [A, B] = data;
+  const pc = (x) => Math.round(x || 0);
+  const net = (ins) => { const r = ((ins.sentiment_pct.positive || 0) - (ins.sentiment_pct.negative || 0)) / 100; return (r >= 0 ? '+' : '') + r.toFixed(2); };
+  const topNeg = (ins) => (ins.negative_themes[0] ? ins.negative_themes[0].theme : '—');
+  const cmpRows = [
+    ['Average rating', String(A.metrics.average), String(B.metrics.average)],
+    ['Positive %', pc(A.metrics.top_box_pct) + '%', pc(B.metrics.top_box_pct) + '%'],
+    ['Net sentiment', net(A.insights), net(B.insights)],
+    ['Top negative theme', topNeg(A.insights), topNeg(B.insights)],
+  ];
+  const distOf = (mm) => { const mx = Math.max(1, ...Object.values(mm.distribution)); return (k) => Math.round((mm.distribution[k] || 0) / mx * 100) + '%'; };
+  const dA = distOf(A.metrics), dB = distOf(B.metrics);
+  const cmpDist = ['5', '4', '3', '2', '1'].map((k) => [k + '★', dA(k), dB(k)]);
+  const painOf = (ins) => ins.negative_themes.slice(0, 3).map((t) => [t.theme, Math.round(t.share) + '%', Math.min(100, Math.round(t.share)) + '%']);
+  const nebPain = painOf(A.insights), csPain = painOf(B.insights);
+  const CIRC = 376.99;
+  const donutOf = (ins) => {
+    const p = pc(ins.sentiment_pct.positive), n = pc(ins.sentiment_pct.neutral), g = pc(ins.sentiment_pct.negative);
+    const pl = (p / 100) * CIRC, nl = (n / 100) * CIRC, gl = (g / 100) * CIRC;
+    return { value: p + '%', dash1: `${pl} ${CIRC}`, dash2: `${nl} ${CIRC}`, off2: -pl, dash3: `${gl} ${CIRC}`, off3: -(pl + nl) };
+  };
+  const donutA = donutOf(A.insights), donutB = donutOf(B.insights);
   return (
     <div style={s("max-width:1200px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:60px")}>
       <div data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
@@ -768,8 +809,8 @@ function Compare() {
         <div style={s("border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:18px")}>
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Sentiment split</span>
           <div style={s("display:flex;align-items:center;justify-content:space-around;gap:18px;flex:1;flex-wrap:wrap")}>
-            <Donut value="72%" dash1="271.4 376.99" dash2="67.86 376.99" off2="-271.4" dash3="37.7 376.99" off3="-339.3" label="Nebula" />
-            <Donut value="64%" dash1="241.3 376.99" dash2="79.2 376.99" off2="-241.3" dash3="56.5 376.99" off3="-320.5" label="Co–Star" />
+            <Donut {...donutA} label="Nebula" />
+            <Donut {...donutB} label="Co–Star" />
           </div>
         </div>
       </section>
@@ -804,7 +845,7 @@ function Compare() {
 /* ============================ ABOUT ============================ */
 const approachCards = [
   ['Data', "Apple's public RSS feed — no keys, no scraping, 100 most-recent US reviews per app."],
-  ['AI', 'A LangGraph graph — classify → themes → synthesize → critic loop. Claude via LLMAPI, with a local NLP fallback that runs fully offline.'],
+  ['AI', 'A LangGraph graph — classify → synthesize → deterministic critic, with a re-synthesize loop. Cheap top-ranked OpenRouter models (Tencent, DeepSeek), distilled against a gpt-5.5 teacher.'],
   ['Observability', 'Langfuse traces every graph run — prompts, latencies, token spend.'],
   ['Metrics', 'Version analytics, sentiment scoring, and ranked negative themes — the read-out a PM actually uses.'],
   ['Design', 'The Dala system — particle cosmos on a void, one violet action color, zero shadows.'],
