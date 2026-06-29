@@ -581,7 +581,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating distribution</span>
           <div style={s("display:flex;flex-direction:column;gap:14px;margin-top:6px")}>
             {distRowsD.map(([lab, w, n]) => (
-              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:28px;font-size:14px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#8052ff;border-radius:24px")}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:28px;font-size:14px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s(`width:${w};height:100%;background:#8052ff;border-radius:24px`)}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
             ))}
           </div>
         </div>
@@ -622,7 +622,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
             <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating by version</span>
             <div style={s("display:flex;align-items:flex-end;gap:10px;height:90px")}>
               {versionBarsD.map(([h, lab]) => (
-                <div key={lab} style={s("flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%")}><div data-grow={h} style={s("width:100%;height:0;background:#8052ff;border-radius:6px")}></div><span style={s("font-size:11px;color:#9a9a9a")}>{lab}</span></div>
+                <div key={lab} style={s("flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%")}><div data-grow={h} style={s(`width:100%;height:${h};background:#8052ff;border-radius:6px`)}></div><span style={s("font-size:11px;color:#9a9a9a")}>{lab}</span></div>
               ))}
             </div>
           </div>
@@ -638,7 +638,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
               <span style={s("font-size:14px;color:#9a9a9a;font-variant-numeric:tabular-nums")}>{t.rank}</span>
               <div style={s("display:flex;flex-direction:column;gap:8px")}>
                 <span style={s("font-weight:600;font-size:18px;letter-spacing:0.021em")}>{t.label}</span>
-                <div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden;max-width:420px")}><div data-grow={t.width} style={s("height:100%;background:#ffb829;border-radius:24px;width:0")}></div></div>
+                <div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden;max-width:420px")}><div data-grow={t.width} style={s(`height:100%;background:#ffb829;border-radius:24px;width:${t.width}`)}></div></div>
               </div>
               <span style={s("font-size:14px;color:#bdbdbd;text-align:right;letter-spacing:0.021em")}>{t.freq} · {t.pct} of negatives</span>
               <span style={s("font-size:14px;color:#9a9a9a")}>→</span>
@@ -654,7 +654,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
           <div style={s("display:flex;flex-direction:column;gap:14px;margin-top:6px")}>
             {taxonomyD.length === 0 && <span style={s("font-size:14px;color:#9a9a9a")}>No negative issues to categorize.</span>}
             {taxonomyD.map(([lab, n, w]) => (
-              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#8052ff;border-radius:24px")}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s(`width:${w};height:100%;background:#8052ff;border-radius:24px`)}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
             ))}
           </div>
           <span style={s("font-size:12px;color:#9a9a9a;letter-spacing:0.021em")}>{mismatchNote}</span>
@@ -664,7 +664,7 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
           <div style={s("display:flex;flex-direction:column;gap:14px;margin-top:6px")}>
             {emotionD.length === 0 && <span style={s("font-size:14px;color:#9a9a9a")}>No emotion signal.</span>}
             {emotionD.map(([lab, n, w]) => (
-              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd;text-transform:capitalize")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#ffb829;border-radius:24px")}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:120px;font-size:14px;color:#bdbdbd;text-transform:capitalize")}>{lab}</span><div style={s("flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s(`width:${w};height:100%;background:#ffb829;border-radius:24px`)}></div></div><span style={s("width:28px;text-align:right;font-size:14px")}>{n}</span></div>
             ))}
           </div>
         </div>
@@ -845,7 +845,7 @@ function Compare() {
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating distribution</span>
           <div style={s("display:flex;flex-direction:column;gap:16px;margin-top:6px")}>
             {cmpDist.map(([lab, wa, wb]) => (
-              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:28px;font-size:13px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;display:flex;flex-direction:column;gap:5px")}><div style={s("height:7px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={wa} style={s("width:0;height:100%;background:#8052ff;border-radius:24px")}></div></div><div style={s("height:7px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={wb} style={s("width:0;height:100%;background:#9a9a9a;border-radius:24px")}></div></div></div></div>
+              <div key={lab} style={s("display:flex;align-items:center;gap:12px")}><span style={s("width:28px;font-size:13px;color:#bdbdbd")}>{lab}</span><div style={s("flex:1;display:flex;flex-direction:column;gap:5px")}><div style={s("height:7px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={wa} style={s(`width:${wa};height:100%;background:#8052ff;border-radius:24px`)}></div></div><div style={s("height:7px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={wb} style={s(`width:${wb};height:100%;background:#9a9a9a;border-radius:24px`)}></div></div></div></div>
             ))}
           </div>
         </div>
@@ -863,7 +863,7 @@ function Compare() {
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Nebula pain points</span>
           <div style={s("display:flex;flex-direction:column;gap:16px")}>
             {nebPain.map(([name, pct, w]) => (
-              <div key={name} style={s("display:flex;flex-direction:column;gap:8px")}><div style={s("display:flex;justify-content:space-between")}><span style={s("font-weight:600;font-size:15px")}>{name}</span><span style={s("font-size:13px;color:#bdbdbd")}>{pct}</span></div><div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#ffb829")}></div></div></div>
+              <div key={name} style={s("display:flex;flex-direction:column;gap:8px")}><div style={s("display:flex;justify-content:space-between")}><span style={s("font-weight:600;font-size:15px")}>{name}</span><span style={s("font-size:13px;color:#bdbdbd")}>{pct}</span></div><div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s(`width:${w};height:100%;background:#ffb829`)}></div></div></div>
             ))}
           </div>
         </div>
@@ -871,7 +871,7 @@ function Compare() {
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Co–Star pain points</span>
           <div style={s("display:flex;flex-direction:column;gap:16px")}>
             {csPain.map(([name, pct, w]) => (
-              <div key={name} style={s("display:flex;flex-direction:column;gap:8px")}><div style={s("display:flex;justify-content:space-between")}><span style={s("font-weight:600;font-size:15px")}>{name}</span><span style={s("font-size:13px;color:#bdbdbd")}>{pct}</span></div><div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s("width:0;height:100%;background:#ffb829")}></div></div></div>
+              <div key={name} style={s("display:flex;flex-direction:column;gap:8px")}><div style={s("display:flex;justify-content:space-between")}><span style={s("font-weight:600;font-size:15px")}>{name}</span><span style={s("font-size:13px;color:#bdbdbd")}>{pct}</span></div><div style={s("height:3px;background:rgba(255,255,255,0.07);border-radius:24px;overflow:hidden")}><div data-grow={w} style={s(`width:${w};height:100%;background:#ffb829`)}></div></div></div>
             ))}
           </div>
         </div>
