@@ -23,9 +23,9 @@ export default function PipelineDiagram() {
           <div style={s("flex:1;min-width:380px;border:1px dashed rgba(128,82,255,0.55);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:12px")}>
             <span style={s("font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#8052ff;font-weight:600")}>LangGraph — classify → synthesize → critic</span>
             <div style={s("display:flex;align-items:stretch;gap:6px;flex-wrap:wrap")}>
-              <div style={s("flex:1;min-width:110px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>classify</span><span style={s("font-size:11px;color:#9a9a9a")}>sentiment + emotion · Tencent Hy3</span></div>
+              <div style={s("flex:1;min-width:110px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>classify</span><span style={s("font-size:11px;color:#9a9a9a")}>sentiment + emotion · Qwen3 Instruct</span></div>
               <span style={s("align-self:center;color:#8052ff;font-size:15px")}>›</span>
-              <div style={s("flex:1;min-width:110px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>synthesize</span><span style={s("font-size:11px;color:#9a9a9a")}>themes + actions + taxonomy · DeepSeek V4</span></div>
+              <div style={s("flex:1;min-width:110px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>synthesize</span><span style={s("font-size:11px;color:#9a9a9a")}>themes + actions + taxonomy · Gemini 2.5 Flash-Lite</span></div>
               <span style={s("align-self:center;color:#8052ff;font-size:15px")}>›</span>
               <div style={s("flex:1;min-width:110px;border:1px solid rgba(21,132,110,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>critic</span><span style={s("font-size:11px;color:#9a9a9a")}>grounding check (deterministic)</span></div>
             </div>
@@ -63,9 +63,9 @@ export default function PipelineDiagram() {
             <span style={s("align-self:center;color:#ffb829;font-size:15px")}>›</span>
             <div style={s("flex:1;min-width:130px;border:1px solid rgba(255,184,41,0.6);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>Build few-shots</span><span style={s("font-size:11px;color:#9a9a9a")}>from student mistakes</span></div>
             <span style={s("align-self:center;color:#ffb829;font-size:15px")}>›</span>
-            <div style={s("flex:1;min-width:130px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>Student Tencent</span><span style={s("font-size:11px;color:#9a9a9a")}>classify before / after</span></div>
+            <div style={s("flex:1;min-width:130px;border:1px solid rgba(128,82,255,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>Student Qwen3</span><span style={s("font-size:11px;color:#9a9a9a")}>classify before / after</span></div>
             <span style={s("align-self:center;color:#15846e;font-size:15px")}>→</span>
-            <div style={s("flex:1;min-width:130px;border:1px solid rgba(21,132,110,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>Agreement</span><span style={s("font-size:11px;color:#9a9a9a")}>95% → 97%</span></div>
+            <div style={s("flex:1;min-width:130px;border:1px solid rgba(21,132,110,0.7);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px")}><span style={s("font-weight:600;font-size:13px")}>Agreement</span><span style={s("font-size:11px;color:#9a9a9a")}>93% → 94%</span></div>
           </div>
           <span style={s("font-size:12px;color:#ffb829;letter-spacing:0.025em")}>few-shots injected into the runtime classify prompt</span>
         </div>

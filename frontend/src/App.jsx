@@ -915,7 +915,7 @@ function Compare() {
 /* ============================ ABOUT ============================ */
 const approachCards = [
   ['Data', "Apple's public RSS feed — no keys, no scraping. ~100 reviews per app across a region (Europe / Asia / Africa), resilient to per-storefront gaps."],
-  ['AI', 'A LangGraph graph — classify → synthesize → deterministic critic, with a re-synthesize loop. Cheap top-ranked OpenRouter models (Tencent, DeepSeek), distilled against a gpt-5.5 teacher.'],
+  ['AI', 'A LangGraph graph — classify → synthesize → deterministic critic, with a re-synthesize loop. Cheap top-ranked OpenRouter models (Qwen, Gemini), distilled against a gpt-5.5 teacher.'],
   ['Observability', 'Langfuse traces every graph run — prompts, latencies, token spend.'],
   ['Metrics', 'Version analytics, sentiment scoring, and ranked negative themes — the read-out a PM actually uses.'],
   ['Design', 'The Dala system — particle cosmos on a void, one violet action color, zero shadows.'],
@@ -953,7 +953,7 @@ function About() {
       <section data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
         <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>AI / Insights pipeline</span>
         <PipelineDiagram />
-        <span style={s("font-size:12px;color:#9a9a9a")}>A LangGraph state graph routes classify → synthesize → critic across cheap top-ranked models, with a deterministic grounding check. Offline prompt distillation lifts the student model's agreement with a gpt-5.5 teacher from 95% to 97% — measured, not assumed.</span>
+        <span style={s("font-size:12px;color:#9a9a9a")}>A LangGraph state graph routes classify → synthesize → critic across cheap top-ranked models, with a deterministic grounding check. Offline prompt distillation lifts the student model's agreement with a gpt-5.5 teacher from 93% to 94% — measured, not assumed.</span>
       </section>
 
       <section data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>

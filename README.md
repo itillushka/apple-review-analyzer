@@ -29,7 +29,7 @@ into metrics and AI-generated insights — exposed through a REST API (and a web
   (classify → synthesize → a deterministic critic that drops hallucinated themes, with a
   re-synthesize loop) on cheap, **top-ranked** OpenRouter models from different vendors.
 - **Prompt distillation.** A premium teacher (`gpt-5.5`) is used at dev-time to distill
-  few-shot examples for the cheap runtime model — agreement measured **before 95% → after 97%**.
+  few-shot examples for the cheap runtime model — agreement measured **before 93% → after 94%**.
 - **Observability.** Every LLM call is traced to **Langfuse**.
 
 ## Tech stack
@@ -74,8 +74,11 @@ full API.
 
 The insights pipeline is a small but real **LangGraph** graph:
 
-1. **classify** — sentiment + emotion per review, batched (`tencent/hy3-preview`).
-2. **synthesize** — negative themes, recommendations, and a taxonomy (`deepseek/deepseek-v4-flash`).
+1. **classify** — sentiment + emotion per review, batched **and run concurrently**
+   (`qwen/qwen3-30b-a3b-instruct-2507` — fast, non-reasoning).
+2. **synthesize** — negative themes, recommendations, and a taxonomy
+   (`google/gemini-2.5-flash-lite`). A distinct vendor from classify keeps the routing
+   genuinely multi-model.
 3. **critic** — a *deterministic* grounding check that drops any theme not actually present
    in the reviews, looping back to re-synthesize once if needed.
 
