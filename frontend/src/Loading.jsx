@@ -34,14 +34,24 @@ export default function Loading({ done, onDone }) {
     let raf, fired = false, lastStage = -1;
     const start = performance.now();
     const EXPECT = 13000;   // expected analysis time; the creep asymptotes around this
-    const MIN = 1200;       // keep the animation on screen at least this long
+    const MIN = 2800;       // always play a smooth build for at least this long
+    const ss = (x) => x * x * (3 - 2 * x); // smoothstep easing
 
     const frame = (now) => {
       const el = now - start;
-      // asymptotic creep to 0.9 — fast at first, never quite arriving until `done`
-      const creep = 0.9 * (1 - Math.exp(-el / EXPECT));
-      const target = doneRef.current ? 1 : Math.max(0.05, creep);
-      prog.current += (target - prog.current) * 0.07;
+      // Scripted minimum ramp (0 → 0.9 over MIN, eased). Even an instant cached
+      // response then animates gracefully for ~MIN instead of flashing past.
+      const ramp = ss(Math.min(1, el / MIN)) * 0.9;
+      let target;
+      if (doneRef.current) {
+        // Done: complete — but never before the minimum animation has played out.
+        target = el >= MIN ? 1 : Math.max(0.05, ramp);
+      } else {
+        // Still working: creep toward 0.9, but at least keep pace with the ramp.
+        const creep = 0.9 * (1 - Math.exp(-el / EXPECT));
+        target = Math.max(0.05, ramp, creep);
+      }
+      prog.current += (target - prog.current) * 0.08;
 
       const pct = prog.current * 100;
       if (barRef.current) barRef.current.style.width = pct.toFixed(1) + '%';
@@ -50,7 +60,7 @@ export default function Loading({ done, onDone }) {
       const si = Math.min(STAGES.length - 1, Math.floor((prog.current / 0.9) * STAGES.length));
       if (si !== lastStage) { lastStage = si; setStageIdx(si); }
 
-      if (doneRef.current && prog.current > 0.992 && el > MIN && !fired) {
+      if (doneRef.current && el >= MIN && prog.current > 0.992 && !fired) {
         fired = true;
         if (lastStage !== STAGES.length - 1) setStageIdx(STAGES.length - 1);
         onDoneRef.current && onDoneRef.current();

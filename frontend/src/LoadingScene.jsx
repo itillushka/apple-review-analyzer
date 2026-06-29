@@ -11,7 +11,7 @@ import * as THREE from 'three';
 // Driven entirely by `progressRef.current` (a 0..1 number the parent updates each
 // frame). We never re-render React per frame: the scene reads the ref in its own
 // requestAnimationFrame loop and animates on the GPU via a single uProgress/uForm.
-export default function LoadingScene({ progressRef, density = 1700 }) {
+export default function LoadingScene({ progressRef, density = 2400 }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -45,44 +45,60 @@ export default function LoadingScene({ progressRef, density = 1700 }) {
     const pickColor = () => { let r = Math.random(); for (const c of cols) { if (r < c[3]) return c; r -= c[3]; } return cols[0]; };
 
     const CLUSTERS = 5;        // one per pipeline stage
-    const RING = 118;          // radius the clusters orbit on
-    const SPREAD = 26;         // gaussian cloud size within a cluster
-    const GR = 150;            // galaxy radius (final form)
+    const RING = 168;          // radius the clusters orbit on
+    const SPREAD = 40;         // gaussian cloud size within a cluster
+    const GR = 200;            // galaxy radius (final form)
+    // Ambient starfield spread across the FULL frame so the sides/corners are never
+    // empty — generous world bounds that cover wide desktop viewports.
+    const AMBIENT_FRAC = 0.42;
+    const AMB_X = 340, AMB_Y = 200, AMB_Z = 90;
     const count = Math.round(density);
+    const ambientCount = Math.round(count * AMBIENT_FRAC);
 
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     const alphas = new Float32Array(count);
     const phases = new Float32Array(count);
     const thresholds = new Float32Array(count);      // progress at which the particle reveals
-    const clusterPos = new Float32Array(count * 3);  // loose-cluster home
-    const galaxyPos = new Float32Array(count * 3);   // final spiral home
+    const clusterPos = new Float32Array(count * 3);  // loose-cluster (or ambient) home
+    const galaxyPos = new Float32Array(count * 3);   // final spiral (or ambient) home
 
     for (let i = 0; i < count; i++) {
-      const cl = i % CLUSTERS;
-      const cAng = (cl / CLUSTERS) * TAU;
-      // cluster centre on the ring + a gaussian puff around it
-      const cx = Math.cos(cAng) * RING, cy = Math.sin(cAng) * RING;
-      clusterPos[i * 3] = cx + gauss() * SPREAD;
-      clusterPos[i * 3 + 1] = cy + gauss() * SPREAD;
-      clusterPos[i * 3 + 2] = gauss() * SPREAD * 0.7;
+      const ambient = i < ambientCount;
+      if (ambient) {
+        // Scattered across the whole viewport; its galaxy target is the SAME point,
+        // so it stays put as a background field while the active particles coalesce.
+        const x = rand(-AMB_X, AMB_X), y = rand(-AMB_Y, AMB_Y), z = rand(-AMB_Z, AMB_Z);
+        clusterPos[i * 3] = x; clusterPos[i * 3 + 1] = y; clusterPos[i * 3 + 2] = z;
+        galaxyPos[i * 3] = x; galaxyPos[i * 3 + 1] = y; galaxyPos[i * 3 + 2] = z;
+      } else {
+        const cl = i % CLUSTERS;
+        const cAng = (cl / CLUSTERS) * TAU;
+        // cluster centre on the ring + a gaussian puff around it
+        const cx = Math.cos(cAng) * RING, cy = Math.sin(cAng) * RING;
+        clusterPos[i * 3] = cx + gauss() * SPREAD;
+        clusterPos[i * 3 + 1] = cy + gauss() * SPREAD;
+        clusterPos[i * 3 + 2] = gauss() * SPREAD * 0.7;
 
-      // galaxy: 3-arm spiral (same recipe as the home cloud's galaxy())
-      const arm = i % 3;
-      const tt = Math.pow(Math.random(), 0.62);
-      const ang = (arm / 3) * TAU + tt * Math.PI + (Math.random() - 0.5) * 1.1;
-      const rad = GR * (0.05 + 1.2 * tt) + (Math.random() - 0.5) * GR * 0.12;
-      galaxyPos[i * 3] = rad * Math.cos(ang) * 1.12;
-      galaxyPos[i * 3 + 1] = rad * Math.sin(ang);
-      galaxyPos[i * 3 + 2] = (Math.random() - 0.5) * GR * 0.18;
+        // galaxy: 3-arm spiral (same recipe as the home cloud's galaxy())
+        const arm = i % 3;
+        const tt = Math.pow(Math.random(), 0.62);
+        const ang = (arm / 3) * TAU + tt * Math.PI + (Math.random() - 0.5) * 1.1;
+        const rad = GR * (0.05 + 1.2 * tt) + (Math.random() - 0.5) * GR * 0.12;
+        galaxyPos[i * 3] = rad * Math.cos(ang) * 1.3;
+        galaxyPos[i * 3 + 1] = rad * Math.sin(ang);
+        galaxyPos[i * 3 + 2] = (Math.random() - 0.5) * GR * 0.18;
+      }
 
       const c = pickColor();
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2];
-      sizes[i] = rand(2.2, 9.5);
-      alphas[i] = c === cols[0] ? rand(0.35, 0.95) : rand(0.6, 1);
+      sizes[i] = ambient ? rand(1.6, 5.5) : rand(2.4, 10.0);
+      // ambient dimmer (background); active brighter (the show)
+      alphas[i] = ambient ? rand(0.18, 0.5) : (c === cols[0] ? rand(0.4, 0.95) : rand(0.6, 1));
       phases[i] = Math.random() * TAU;
-      // reveal clusters in order across 0..0.72, with a per-particle stagger
-      thresholds[i] = (cl / CLUSTERS) * 0.72 + Math.random() * 0.10;
+      // ambient reveals immediately (fills the frame from the start); active clusters
+      // reveal in order across 0..0.72 with a per-particle stagger.
+      thresholds[i] = ambient ? Math.random() * 0.12 : (i % CLUSTERS / CLUSTERS) * 0.72 + Math.random() * 0.10;
     }
 
     const geo = new THREE.BufferGeometry();
@@ -152,10 +168,11 @@ export default function LoadingScene({ progressRef, density = 1700 }) {
       material.uniforms.uTime.value = t;
       material.uniforms.uProgress.value = p;
       material.uniforms.uForm.value = formCur;
-      // clusters orbit the ring; the spin eases off as the galaxy forms
-      points.rotation.z = t * 0.20 * (1 - formCur * 0.7);
-      points.rotation.y = Math.sin(t * 0.18) * 0.18 + formCur * 0.2;
-      points.rotation.x = Math.sin(t * 0.13) * 0.08;
+      // clusters orbit the ring; the spin eases off as the galaxy forms. Kept gentle
+      // so the full-frame ambient field stays evenly spread (corners don't sweep empty).
+      points.rotation.z = t * 0.10 * (1 - formCur * 0.6);
+      points.rotation.y = Math.sin(t * 0.16) * 0.12;
+      points.rotation.x = Math.sin(t * 0.12) * 0.06;
       renderer.render(scene, camera);
       raf = requestAnimationFrame(loop);
     };
