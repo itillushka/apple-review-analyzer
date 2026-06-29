@@ -21,7 +21,7 @@ export default function ArchDiagram() {
         <div style={s("border:1px dashed rgba(128,82,255,0.5);border-radius:24px;padding:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap")}>
           <span style={s("font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#8052ff;font-weight:600")}>Client</span>
           <div style={s("border:1px solid #8052ff;border-radius:16px;padding:12px 18px;display:flex;flex-direction:column;gap:3px")}>
-            <span style={s("font-weight:600;font-size:14px")}>React + Vite + Tailwind</span>
+            <span style={s("font-weight:600;font-size:14px")}>React + Vite + Three.js</span>
             <span style={s("font-size:12px;color:#9a9a9a")}>Dala design system</span>
           </div>
           <div style={s("display:flex;gap:8px;flex-wrap:wrap")}>
