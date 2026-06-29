@@ -285,7 +285,7 @@ export default function App() {
               chipDefs={chipDefs} filter={filter} setFilter={setFilter}
               search={search} setSearch={setSearch}
               visibleReviews={visibleReviews} onReview={setActiveReview}
-              openDownload={() => setModalOpen(true)}
+              openDownload={() => setModalOpen(true)} nav={nav}
             />
           )}
           {view === 'compare' && <Compare />}
@@ -738,9 +738,13 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAna
 }
 
 /* ============================ REVIEWS ============================ */
-function Reviews({ chipDefs, filter, setFilter, search, setSearch, visibleReviews, onReview, openDownload }) {
+function Reviews({ chipDefs, filter, setFilter, search, setSearch, visibleReviews, onReview, openDownload, nav }) {
   return (
     <div style={s("max-width:1200px;margin:0 auto;padding:48px 24px 96px;display:flex;flex-direction:column;gap:36px")}>
+      <Box data-reveal="" as="a" href="#" onClick={nav('dashboard')} css="display:inline-flex;align-items:center;gap:8px;color:#9a9a9a;text-decoration:none;font-size:13px;letter-spacing:0.04em;width:fit-content;cursor:pointer;transition:color .2s" hover="color:#fff">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18 L9 12 L15 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        Back to dashboard
+      </Box>
       <div data-reveal="" style={s("display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px")}>
         <span style={s("font-weight:300;font-size:48px;letter-spacing:-0.04em")}>Reviews</span>
         <span style={s("font-size:13px;color:#9a9a9a")}>Apple App Store reviews · translated to English · most recent + most helpful</span>
