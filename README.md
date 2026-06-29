@@ -151,3 +151,7 @@ deploy/          host nginx site (TLS)
 - **Cheap, fast, non-reasoning LLMs + distillation** rather than a single premium model —
   inexpensive and quick at runtime, with the quality gap to a premium model measured and closed.
 - **No database** — a JSON file cache keeps the deployment dependency-free.
+
+## License
+
+[MIT](LICENSE) © 2026 Illia Pastushok
