@@ -767,9 +767,19 @@ function Compare() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
   useEffect(() => {
-    Promise.all([apiAnalyze('1459969523', 'europe', 100), apiAnalyze('1264782561', 'europe', 100)])
-      .then(setData)
-      .catch((e) => setErr(e.message || 'Compare failed'));
+    // Prefer the precomputed Nebula vs Co–Star snapshot (instant, no API call);
+    // fall back to a live analysis if the snapshot is missing.
+    fetch(`${import.meta.env.BASE_URL}compare.json`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        if (!Array.isArray(d) || d.length < 2) throw new Error('bad snapshot');
+        setData(d);
+      })
+      .catch(() => {
+        Promise.all([apiAnalyze('1459969523', 'europe', 100), apiAnalyze('1264782561', 'europe', 100)])
+          .then(setData)
+          .catch((e) => setErr(e.message || 'Compare failed'));
+      });
   }, []);
   if (err) return (
     <div style={s("max-width:1200px;margin:0 auto;padding:96px 24px;text-align:center;color:#9a9a9a")}>
@@ -779,8 +789,7 @@ function Compare() {
   );
   if (!data) return (
     <div style={s("max-width:1200px;margin:0 auto;padding:96px 24px;text-align:center;color:#9a9a9a")}>
-      <div style={s("font-size:24px;color:#fff;font-weight:300")}>Comparing Nebula vs Co–Star…</div>
-      <div style={s("margin-top:8px;font-size:14px")}>First run fetches Co–Star live — up to ~1–2 min.</div>
+      <div style={s("font-size:24px;color:#fff;font-weight:300")}>Loading comparison…</div>
     </div>
   );
   const [A, B] = data;
