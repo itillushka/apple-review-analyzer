@@ -999,7 +999,7 @@ function ApiDocs({ activeEndpoint, scrollToEp }) {
       <div data-reveal="" style={s("display:flex;flex-direction:column;gap:12px")}>
         <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8052ff")}>Reference</span>
         <h1 style={s("font-weight:300;font-size:clamp(40px,6vw,64px);line-height:0.95;letter-spacing:-0.04em")}>API Docs</h1>
-        <p style={s("font-size:17px;line-height:1.5;color:#bdbdbd;max-width:60ch")}>Collect Apple App Store reviews for any app and analyze them — metrics, sentiment, emotions, themes, and recommendations. JSON over HTTP, no auth required.</p>
+        <p style={s("font-size:17px;line-height:1.5;color:#bdbdbd;max-width:60ch")}>Collect Apple App Store reviews for any app and analyze them — metrics, sentiment, emotions, themes, and recommendations. JSON over HTTP, open by default.</p>
       </div>
 
       <div style={s("display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;align-items:start")}>
@@ -1024,8 +1024,14 @@ function ApiDocs({ activeEndpoint, scrollToEp }) {
             <p style={s("font-size:15px;line-height:1.6;color:#bdbdbd")}>Review Atlas wraps Apple's public review RSS with an NLP/LLM analysis pipeline. Every endpoint returns JSON; an interactive Swagger UI is available at <span style={s("font-family:'Space Mono',monospace;color:#fff")}>/docs</span>.</p>
             <div style={s("display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.12);border-radius:24px;overflow:hidden")}>
               <div style={s("display:grid;grid-template-columns:160px 1fr;gap:18px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08)")}><span style={s("font-size:13px;color:#9a9a9a")}>Base URL (local)</span><span style={s("font-family:'Space Mono',monospace;font-size:13px;color:#fff")}>http://localhost:8100</span></div>
-              <div style={s("display:grid;grid-template-columns:160px 1fr;gap:18px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08)")}><span style={s("font-size:13px;color:#9a9a9a")}>Auth</span><span style={s("font-size:13px;color:#bdbdbd")}>none — LLM keys live server-side; clients call freely</span></div>
+              <div style={s("display:grid;grid-template-columns:160px 1fr;gap:18px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08)")}><span style={s("font-size:13px;color:#9a9a9a")}>Auth</span><span style={s("font-size:13px;color:#bdbdbd")}>optional — set <span style={s("font-family:'Space Mono',monospace;color:#fff")}>ACCESS_TOKEN</span> to require an <span style={s("font-family:'Space Mono',monospace;color:#fff")}>X-Access-Token</span> header; open by default</span></div>
               <div style={s("display:grid;grid-template-columns:160px 1fr;gap:18px;padding:14px 18px")}><span style={s("font-size:13px;color:#9a9a9a")}>Format</span><span style={s("font-size:13px;color:#bdbdbd")}>JSON · Swagger UI at /docs</span></div>
+            </div>
+
+            {/* Running locally needs your own LLM keys — they are not bundled with the code. */}
+            <div style={s("border:1px solid rgba(255,184,41,0.35);border-radius:24px;padding:20px 24px;display:flex;flex-direction:column;gap:8px;background:rgba(255,184,41,0.04)")}>
+              <span style={s("font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#ffb829")}>Running locally — bring your own keys</span>
+              <span style={s("font-size:14px;line-height:1.6;color:#bdbdbd")}>The LLM provider keys are <strong style={s("color:#fff;font-weight:600")}>not bundled</strong> with the code — on the hosted demo they live in the server's environment. To run the analysis pipeline on your own machine, copy <span style={s("font-family:'Space Mono',monospace;color:#fff")}>.env.example</span> → <span style={s("font-family:'Space Mono',monospace;color:#fff")}>.env</span> and add at least <span style={s("font-family:'Space Mono',monospace;color:#fff")}>OPENROUTER_API_KEY</span> (the insights graph requires it). <span style={s("font-family:'Space Mono',monospace;color:#fff")}>OPENAI_API_KEY</span> (paid escalation) and <span style={s("font-family:'Space Mono',monospace;color:#fff")}>LANGFUSE_*</span> (tracing) are optional. Collection &amp; rating metrics work with no keys at all.</span>
             </div>
           </section>
 
