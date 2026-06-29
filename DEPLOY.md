@@ -1,5 +1,11 @@
 # Deployment
 
+**Live instance:** https://obrio.teriffic.xyz — Ubuntu VPS `52.30.15.225`, deployed
+under `~/review-atlas`, web container on `127.0.0.1:8180`, behind the host nginx site
+`obrio` with a Let's Encrypt certificate (auto-renewing). The API access gate is on;
+the shared token lives in the server's `backend/.env` (`ACCESS_TOKEN`). It runs
+alongside another stack on the box (ports 8000/3000) without touching it.
+
 Review Atlas runs as two containers (`api` + `web`) behind the host's nginx + certbot
 for TLS. No Traefik, no managed cloud — a plain Docker Compose stack on a single VPS,
 designed to sit **alongside** other apps already on the box.
