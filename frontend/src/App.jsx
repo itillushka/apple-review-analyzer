@@ -5,7 +5,7 @@ import { highlight } from './highlight.jsx';
 import Particles from './Particles.jsx';
 import ArchDiagram from './ArchDiagram.jsx';
 import PipelineDiagram from './PipelineDiagram.jsx';
-import { analyze as apiAnalyze, verifyToken, setToken, clearToken, parseAppId } from './api.js';
+import { analyze as apiAnalyze, getReviews, downloadReviews, verifyToken, setToken, clearToken, parseAppId } from './api.js';
 
 const REDUCE = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -33,11 +33,18 @@ export default function App() {
   const [tokenError, setTokenError] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [appId, setAppId] = useState('1459969523');
+  const [reviewsReal, setReviewsReal] = useState(null);
 
   // Skip the gate when the backend is open (no ACCESS_TOKEN) or a stored token is valid.
   useEffect(() => {
     verifyToken().then(() => setAuthed(true)).catch(() => {});
   }, []);
+
+  // Lazily load the real reviews when the explorer is opened.
+  useEffect(() => {
+    if (view !== 'reviews' || reviewsReal) return;
+    getReviews(appId).then(setReviewsReal).catch(() => setReviewsReal([]));
+  }, [view, appId, reviewsReal]);
 
   const contentRef = useRef(null);
   const progressRef = useRef(null);
@@ -79,6 +86,7 @@ export default function App() {
     if (e && e.target) { const inp = e.target.querySelector ? e.target.querySelector('input') : null; val = inp ? inp.value.trim() : (e.target.value || '').trim(); }
     const id = parseAppId(val) || '1459969523'; // empty input → demo (Nebula)
     setAppId(id);
+    setReviewsReal(null);
     setView('loading');
     window.scrollTo(0, 0);
     requestAnimationFrame(() => { if (progressRef.current) progressRef.current.style.width = '100%'; });
@@ -180,7 +188,19 @@ export default function App() {
 
   // ---- derived: filtered reviews ----
   const q = (search || '').trim().toLowerCase();
-  const visibleReviews = reviewsData.filter(r => {
+  const capSent = (x) => (x ? x[0].toUpperCase() + x.slice(1) : 'Neutral');
+  const reviewsSource = (reviewsReal || []).map((r) => ({
+    s: r.rating,
+    stars: '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating),
+    title: r.title || '(no title)',
+    body: r.content || '',
+    sentiment: capSent(r.sentiment),
+    version: r.version || '—',
+    date: r.date || '',
+    helpful: r.vote_count || 0,
+    country: (r.country || '').toUpperCase(),
+  }));
+  const visibleReviews = reviewsSource.filter(r => {
     let ok = true;
     if (['5', '4', '3', '2', '1'].includes(filter)) ok = r.s === parseInt(filter, 10);
     else if (filter === 'positive') ok = r.sentiment === 'Positive';
@@ -188,7 +208,7 @@ export default function App() {
     else if (filter === 'negative') ok = r.sentiment === 'Negative';
     if (ok && q) ok = (r.title + ' ' + r.body).toLowerCase().includes(q);
     return ok;
-  }).map((r) => ({ ...r, ...pill(r.sentiment), meta: 'v' + r.version + ' · ' + r.date + ' · United States' }));
+  }).map((r) => ({ ...r, ...pill(r.sentiment), meta: 'v' + r.version + ' · ' + r.date + ' · ' + r.country }));
 
   const chipDefs = [
     { id: 'all', label: 'All' }, { id: '5', label: '5★' }, { id: '4', label: '4★' }, { id: '3', label: '3★' }, { id: '2', label: '2★' }, { id: '1', label: '1★' },
@@ -278,8 +298,8 @@ export default function App() {
               </div>
               <span style={s("font-size:15px;line-height:1.5;color:#bdbdbd")}>100 reviews from Nebula · US storefront · most recent. Choose a format.</span>
               <div style={s("display:flex;gap:12px")}>
-                <Box as="button" onClick={() => setModalOpen(false)} css="flex:1;background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">JSON</Box>
-                <Box as="button" onClick={() => setModalOpen(false)} css="flex:1;background:transparent;border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:background .2s" hover="background:rgba(255,255,255,0.06)">CSV</Box>
+                <Box as="button" onClick={() => { downloadReviews(appId, 'europe', 'json'); setModalOpen(false); }} css="flex:1;background:#8052ff;border:none;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:transform .18s" hover="transform:scale(1.02)" active="transform:scale(0.98)">JSON</Box>
+                <Box as="button" onClick={() => { downloadReviews(appId, 'europe', 'csv'); setModalOpen(false); }} css="flex:1;background:transparent;border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:15px;cursor:pointer;transition:background .2s" hover="background:rgba(255,255,255,0.06)">CSV</Box>
               </div>
               <span style={s("font-size:12px;color:#9a9a9a")}>Data from Apple's public RSS · no tracking.</span>
             </div>
@@ -481,6 +501,17 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
   }));
   const insightTags = ['Billing', 'Trust', 'Onboarding', 'Reliability', 'Quality', 'UX'];
   const insightsD = (ins.actionable || []).map((a, i) => ({ tag: insightTags[i] || 'Fix', text: a }));
+  const trendArr = m.trend && m.trend.length ? m.trend : null;
+  const trendPts = trendArr
+    ? trendArr.map((t, i) => {
+        const x = trendArr.length === 1 ? 720 : (i / (trendArr.length - 1)) * 720;
+        const y = 190 - ((Math.max(1, Math.min(5, t.average)) - 1) / 4) * 150;
+        return `${Math.round(x)},${Math.round(y)}`;
+      }).join(' ')
+    : '0,128 65,140 131,118 196,150 262,110 327,96 393,108 458,82 524,90 589,64 655,72 720,52';
+  const versionBarsD = m.by_version && m.by_version.length
+    ? m.by_version.slice(0, 6).map((v) => [Math.round((v.average / 5) * 90) + 'px', v.version])
+    : versionBars;
   const appName = APP_NAMES[appId] || ('App ' + appId);
   const subtitle = `App Store ID ${(analysis && analysis.app_id) || appId} · ${(col.countries || ['—']).join(', ')} · ${col.returned != null ? col.returned : total} reviews`;
   const engineNote = `Insights engine: ${ins.backend === 'llm' ? 'LLM (OpenRouter multi-model)' : (ins.backend || 'LLM')}.`;
@@ -574,13 +605,12 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme }) {
             <line x1="0" y1="90" x2="720" y2="90" stroke="#ffffff" strokeOpacity="0.07" />
             <line x1="0" y1="140" x2="720" y2="140" stroke="#ffffff" strokeOpacity="0.07" />
             <line x1="0" y1="190" x2="720" y2="190" stroke="#ffffff" strokeOpacity="0.07" />
-            <polyline ref={lineRef} points="0,128 65,140 131,118 196,150 262,110 327,96 393,108 458,82 524,90 589,64 655,72 720,52" fill="none" stroke="#8052ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="720" cy="52" r="4" fill="#8052ff" />
+            <polyline ref={lineRef} points={trendPts} fill="none" stroke="#8052ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <div style={s("display:flex;flex-direction:column;gap:10px;min-width:160px;justify-content:center")}>
             <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating by version</span>
             <div style={s("display:flex;align-items:flex-end;gap:10px;height:90px")}>
-              {versionBars.map(([h, lab]) => (
+              {versionBarsD.map(([h, lab]) => (
                 <div key={lab} style={s("flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%")}><div data-grow={h} style={s("width:100%;height:0;background:#8052ff;border-radius:6px")}></div><span style={s("font-size:11px;color:#9a9a9a")}>{lab}</span></div>
               ))}
             </div>

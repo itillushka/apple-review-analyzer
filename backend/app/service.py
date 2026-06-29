@@ -49,7 +49,41 @@ async def analyze(
         insights=insights,
     )
     storage.save_analysis(analysis)
+    # Cache the exact sampled reviews joined with their sentiment (for /reviews).
+    storage.save_reviews(collected.meta.app_id, region, _enrich_reviews(collected.reviews, insights))
     return analysis
+
+
+def _enrich_reviews(reviews: list[Review], insights) -> list[dict]:
+    """Join each review's text with its classified sentiment (for the explorer)."""
+    sentiment = {p.id: p.sentiment for p in insights.per_review}
+    return [
+        {
+            "id": r.id,
+            "rating": r.rating,
+            "title": r.title_en or r.title,
+            "content": r.content_en or r.content,
+            "version": r.version,
+            "date": r.updated.date().isoformat() if r.updated else None,
+            "country": r.country,
+            "vote_count": r.vote_count,
+            "sentiment": sentiment.get(r.id, "neutral"),
+        }
+        for r in reviews
+    ]
+
+
+async def reviews_list(
+    app_id: str, *, region: str = "europe", limit: int = 100
+) -> list[dict]:
+    """Enriched reviews (review + sentiment); runs analysis once if not cached."""
+    cached = storage.load_reviews(app_id, region)
+    if cached is not None:
+        return cached
+    # No reviews cache yet (e.g. analysis was cached before reviews were stored):
+    # recompute so the exact sampled reviews + sentiment are persisted.
+    await analyze(app_id, region=region, limit=limit, refresh=True)
+    return storage.load_reviews(app_id, region) or []
 
 
 async def metrics_only(

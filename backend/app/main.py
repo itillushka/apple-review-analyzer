@@ -128,6 +128,12 @@ async def download_reviews(
 
 # --- analysis ---
 
+@app.get("/reviews", tags=["reviews"], dependencies=[Depends(require_token)])
+async def reviews(app_id: str = _AppId, region: str = _Region, limit: int = _Limit) -> list:
+    """Collected reviews enriched with sentiment (for the reviews explorer)."""
+    return await _guard(service.reviews_list(app_id, region=region, limit=limit))
+
+
 @app.get("/metrics", tags=["analysis"], dependencies=[Depends(require_token)])
 async def metrics(app_id: str = _AppId, region: str = _Region, limit: int = _Limit) -> dict:
     """Rating metrics only — average, distribution, by-version, trend (no LLM)."""

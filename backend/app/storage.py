@@ -7,6 +7,7 @@ tops up the deficit. Corrupt or unreadable cache files are treated as a cache mi
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -65,4 +66,26 @@ def save_analysis(analysis: AnalysisResult) -> None:
     """Persist a full analysis result to the cache directory."""
     _analysis_path(analysis.app_id, analysis.region).write_text(
         analysis.model_dump_json(), encoding="utf-8"
+    )
+
+
+def _reviews_path(app_id: str, region: str) -> Path:
+    return _data_dir() / f"{app_id}_{region}_reviews.json"
+
+
+def load_reviews(app_id: str, region: str) -> list | None:
+    """Return cached enriched reviews (review + sentiment), or None on a miss."""
+    path = _reviews_path(app_id, region)
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save_reviews(app_id: str, region: str, reviews: list) -> None:
+    """Persist the enriched reviews (the exact sample the analysis used)."""
+    _reviews_path(app_id, region).write_text(
+        json.dumps(reviews, ensure_ascii=False), encoding="utf-8"
     )

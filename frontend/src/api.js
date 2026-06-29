@@ -33,6 +33,9 @@ export const verifyToken = () => req('/auth/verify');
 export const analyze = (appId, region = 'europe', limit = 100) =>
   req(`/analyze?app_id=${encodeURIComponent(appId)}&region=${region}&limit=${limit}`);
 
+export const getReviews = (appId, region = 'europe') =>
+  req(`/reviews?app_id=${encodeURIComponent(appId)}&region=${region}`);
+
 export async function downloadReviews(appId, region, format) {
   const res = await fetch(
     `${BASE}/reviews/download?app_id=${appId}&region=${region}&format=${format}`,
