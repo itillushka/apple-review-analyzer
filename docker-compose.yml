@@ -1,13 +1,14 @@
 # Review Atlas — full stack.
 #
 # `api`  : FastAPI backend (works today).            -> internal :8100
-# `web`  : Vite/React frontend + nginx (proxies /api -> api). Builds once the
-#          frontend project exists in ./frontend.    -> host :8080
+# `web`  : Vite/React frontend + nginx (proxies /api -> api).  -> host 127.0.0.1:8180
 #
 # Run the backend only:   docker compose up -d api
 # Run everything:         docker compose up -d
-# The host's nginx + certbot terminates TLS and proxies to the web container
-# (see deploy/nginx.conf and DEPLOY.md).
+# The web container binds to localhost only (127.0.0.1:8180); the host's nginx +
+# certbot terminates TLS and reverse-proxies the public subdomain to it. Port 8180
+# avoids the other stack already on this box (8000 / 3000). See deploy/nginx.conf
+# and DEPLOY.md.
 
 services:
   api:
@@ -24,7 +25,7 @@ services:
     depends_on:
       - api
     ports:
-      - "8080:80"
+      - "127.0.0.1:8180:80"
     restart: unless-stopped
 
 volumes:
