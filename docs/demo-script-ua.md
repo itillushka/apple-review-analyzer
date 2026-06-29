@@ -1,114 +1,76 @@
-# Demo video — script & storyboard (Ukrainian voiceover)
+# Demo video — read-aloud script (Ukrainian)
 
-Target length: **~3:00–3:15**. Screen recording of the live site
-(`https://obrio.teriffic.xyz`) with a Ukrainian voiceover. UI stays in English.
+Teleprompter version: read top to bottom while screen-recording the live site
+(`https://obrio.teriffic.xyz`). Each scene = a short on-screen cue + the narration to read.
+UI stays in English; voiceover is Ukrainian. Target length **~3:00**.
 
 ## Before recording (checklist)
 
-- **Pre-authenticate**: enter the access token once *before* you start recording (so the
-  token never appears on screen). The browser remembers it.
-- **Pre-warm the cache**: open Nebula (`1459969523`) and Co-Star once before recording so
-  the dashboard/Compare load instantly. The loading animation still plays its smooth ~3s
-  build even on a cache hit, so you'll show it without a 30s wait.
-- Full-screen the browser, hide the bookmarks bar, 1920×1080, light/no other tabs.
-- Reduce-motion off (so particles animate). Sound: quiet room, mic check.
-- Optional: have the GitHub repo tab open for the closing shot.
+- **Log in with the access token *before* you start recording** (so the token never shows).
+- **Pre-warm** Nebula (`1459969523`) and Co-Star once before recording — the dashboard and
+  Compare then load instantly, and the loading animation still plays its smooth ~3s build
+  on a cache hit (so you show it without a 30s wait).
+- Full-screen browser, hide the bookmarks bar, 1920×1080, no other tabs, reduce-motion off.
+- Quiet room, mic check. Have the GitHub repo tab ready for the final shot.
 
 ---
 
-## Scene 1 — Intro · 0:00–0:15
+### Scene 1 — Home / particle hero · ~0:00–0:15
 
-**On screen:** Home page — hero with the particle cosmos, slow scroll to show the headline
-and the search field.
+Привіт! Це **Review Atlas** — мій інструмент для аналізу відгуків з Apple App Store. Я зробив
+його як тестове завдання для OBRIO. Ідея проста: береш будь-який застосунок — і за пару
+хвилин маєш повну картину: метрики, настрої, болі користувачів і що з цим робити. І все це
+працює наживо.
 
-**Voiceover (UA):**
-> Привіт! Це **Review Atlas** — інструмент аналізу відгуків з Apple App Store, який я
-> зробив як тестове завдання для OBRIO. Він збирає близько сотні відгуків будь-якого
-> застосунку, рахує метрики і генерує AI-інсайти. І все це працює наживо — ось на цьому
-> сайті.
+### Scene 2 — Type "Nebula" → 3D loading scene · ~0:15–0:38
 
-## Scene 2 — Search by name + loading · 0:15–0:38
+Шукати можна прямо за назвою. Введу «Nebula»… ось вона. Тисну — і поки система тягне сотню
+відгуків та проганяє їх через аналіз, ці частинки складаються в галактику. Кожна частинка —
+окремий відгук, кожен кластер — етап обробки.
 
-**On screen:** Click the search field, type **"Nebula"** → the autocomplete dropdown shows
-matching apps with icons → click **Nebula** → the 3D particle loading scene plays.
+### Scene 3 — Dashboard, slow scroll · ~0:38–1:20
 
-**Voiceover (UA):**
-> Шукати можна просто за назвою — почнімо з Nebula. Поки система збирає й аналізує відгуки,
-> частинки складаються в галактику: кожна частинка — це відгук, а кожен кластер — окремий
-> етап обробки. Збір, переклад, оцінка настрою, пошук тем.
+І ось дашборд. Угорі — справжня назва й іконка з App Store. Середній рейтинг, розподіл зірок,
+баланс настроїв. А далі найцікавіше — головні негативні теми з живими цитатами з відгуків.
+Бачите — у Nebula майже все болить про гроші: несподівані списання, неможливість скасувати
+підписку. І одразу поруч — конкретні рекомендації. Нижче — динаміка рейтингу в часі та за
+версіями, емоції, таксономія проблем, і навіть випадки, коли зірок п'ять, а текст — суцільний
+негатив.
 
-## Scene 3 — Dashboard walkthrough · 0:38–1:20
+### Scene 4 — "View all reviews" → filters → download · ~1:20–1:42
 
-**On screen:** The dashboard appears (Nebula logo + name at top). Slowly scroll: the four
-summary cards → rating distribution → sentiment donut → negative themes (hover one to show
-the example quote) → actionable insights → rating-over-time + by-version → emotions +
-taxonomy + mismatch.
+Можна провалитися в самі відгуки — усі сто. Відфільтрувати за зірками чи настроєм, відкрити
+будь-який, а сирі дані — забрати у JSON або CSV.
 
-**Voiceover (UA):**
-> Ось дашборд. Угорі — реальна назва й іконка застосунку. Середній рейтинг, розподіл зірок
-> у відсотках, розклад настроїв і чистий сентимент. Нижче — топові негативні теми з
-> **реальними цитатами** з відгуків. У Nebula це переважно скарги на оплату: несанкціоновані
-> списання, складне скасування підписки. Поруч — конкретні рекомендації, що з цим робити.
-> Далі — рейтинг у часі та за версіями, розклад емоцій, таксономія по багах, фічах, UX і
-> цінах, і навіть розбіжність «зірки проти тексту» — коли оцінка висока, а текст негативний.
+### Scene 5 — Compare (Nebula vs Co-Star) · ~1:42–2:08
 
-## Scene 4 — Reviews explorer + download · 1:20–1:42
+А тепер моє улюблене — порівняння. Nebula проти Co-Star. Та сама ніша, астрологія, але болі
+абсолютно різні. У Nebula це монетизація й довіра. А в Co-Star — технічна надійність: вхід,
+вильоти застосунку. Дані самі розповідають історію.
 
-**On screen:** Click **"View all reviews"** → the explorer. Filter by star and by sentiment,
-click one review to open its popup, then open the **Download** modal (JSON / CSV). Use the
-back arrow to return.
+### Scene 6 — API Docs → Swagger `/docs` · ~2:08–2:30
 
-**Voiceover (UA):**
-> Можна переглянути всі сто відгуків, відфільтрувати за зірками чи настроєм, відкрити
-> будь-який, а сирі дані — вивантажити у JSON або CSV. Один клік — і назад на дашборд.
+Під капотом — справжній REST API на FastAPI. Повністю задокументований, з інтерактивним
+Swagger: будь-який ендпоінт можна смикнути напряму.
 
-## Scene 5 — Compare · 1:42–2:08
+### Scene 7 — About / the diagrams · ~2:30–3:00
 
-**On screen:** Nav → **Compare**. Show the Nebula vs Co-Star table, the side-by-side donuts
-and the pain-point bars.
+Але серце проекту — це AI. Інсайти будує граф на **LangGraph**: класифікація, синтез і
+детермінований критик, який відкидає теми, не підтверджені відгуками. Моделі дешеві, швидкі й
+від різних вендорів: Qwen класифікує, Gemini синтезує. Промпти я дистилював під сильнішу
+модель-вчителя — і точність піднялась із дев'яноста трьох до дев'яноста чотирьох відсотків. А
+кожен виклик моделі видно в **Langfuse**.
 
-**Voiceover (UA):**
-> Найцікавіше — сторінка порівняння: Nebula проти Co-Star. Однакова категорія — астрологія —
-> але зовсім різні болі. У Nebula проблема в монетизації й довірі. А в Co-Star — в
-> надійності: користувачі скаржаться на вхід і вильоти застосунку. Дані самі розповідають
-> історію.
+### Scene 8 — GitHub / v1.0.0 release · ~3:00–3:15
 
-## Scene 6 — API Docs / Swagger · 2:08–2:30
-
-**On screen:** Nav → **API Docs** (scroll briefly), then open `/docs` in a new tab and run
-`GET /analyze` once to show a live JSON response.
-
-**Voiceover (UA):**
-> Під капотом це повноцінний REST API на FastAPI — повністю задокументований, з інтерактивним
-> Swagger. Будь-який ендпоінт можна викликати напряму й одразу побачити відповідь.
-
-## Scene 7 — About / the AI story · 2:30–3:00
-
-**On screen:** Nav → **About**. Scroll to the **System Architecture** and **AI / Insights
-Pipeline** diagrams; let them sit on screen while you narrate.
-
-**Voiceover (UA):**
-> І головне — AI. Інсайти будує граф на **LangGraph**: класифікація, синтез і детермінований
-> критик, який викидає теми, не підтверджені відгуками. Моделі дешеві, швидкі й з різних
-> вендорів — Qwen для класифікації, Gemini для синтезу. Промпти **дистильовані** під сильнішу
-> модель-вчителя — згода зросла з дев'яноста трьох до дев'яноста чотирьох відсотків. А кожен
-> виклик трейситься в **Langfuse**.
-
-## Scene 8 — Wrap · 3:00–3:15
-
-**On screen:** Switch to the GitHub repo / the v1.0.0 release page.
-
-**Voiceover (UA):**
-> Усе задеплоєно через Docker і nginx на звичайному VPS, із автоматичним TLS. Код,
-> документація і реліз версії 1.0 — на GitHub. Дякую за перегляд!
+Усе задеплоєно через Docker і nginx на звичайному VPS, з автоматичним TLS. Код, документація
+і реліз версії 1.0 — на GitHub. Дякую за перегляд!
 
 ---
 
-## Notes
+## Tips
 
-- If you'd rather show a **fresh** analysis (real ~25s collection), pick an app that wasn't
-  pre-warmed and cut/speed-up the wait in editing — but the cached path with the smooth ~3s
-  loader is cleaner for a demo.
-- Keep each scene tight; if you run long, Scene 3 is the one to trim (it's the densest).
-- Mention "OBRIO" and "LangGraph / Langfuse / multi-model routing / distillation" clearly —
-  those are the signals the reviewers are listening for.
+- If you run long, **Scene 3** is the densest — trim a sentence there first.
+- Say the keywords clearly — **OBRIO**, **LangGraph**, **Langfuse**, multi-model routing,
+  distillation — those are the signals reviewers listen for.
+- Prefer the cached path (smooth ~3s loader) over a real fresh fetch (~25s) for a clean cut.
