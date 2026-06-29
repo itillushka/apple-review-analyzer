@@ -95,12 +95,15 @@ design plan (`~/.claude/plans/quiet-crunching-mist.md`).
 - [ ] `app/viz.py` — matplotlib PNGs (rating, sentiment, by-version, trend)
 - commit: `feat: chart generation for reports`
 
-## Phase 7 — Frontend ☐
-- [ ] Commit design reference (`docs/design/` from CloudDesign export)
-- [ ] `frontend/` Vite+React+TS+Tailwind; Dala tokens; fix 24px-radius + drop texture nits
-- [ ] Pages: Home, Dashboard, Reviews Explorer, Compare, About; 3 popups; states; motion
-- [ ] Recharts wired to the API
-- commit: `feat: React frontend (Dala design system)`
+## Phase 7 — Frontend 🔄
+- [x] `frontend/` Vite + React + TS + **Tailwind v4** with Dala tokens + Space Grotesk/Mono.
+- [x] **Server-side access gate** (`ACCESS_TOKEN` on data endpoints) + `TokenGate` UI that
+  sends `X-Access-Token` and verifies via `/auth/verify`. (Client secret alone ≠ protection.)
+- [x] API client (`api.ts`), Home (hero + search → real app id), **Results dashboard wired to
+  `/analyze`** (real metrics + Recharts + themes + actionable + taxonomy + CSV/JSON download).
+- [x] Builds clean (`npm run build`), typechecks. commit: `feat: React frontend core`.
+- [ ] Remaining pages from the CloudDesign macts: About (+ diagrams), API Docs (OpenAI-style),
+  Pricing (joke), Compare, Reviews Explorer; popups; motion/particles polish.
 
 ## Phase 8 — Sample report ☐
 - [ ] `scripts/generate_report.py` → `reports/sample_report.md` (Nebula vs Co–Star)
