@@ -45,8 +45,7 @@ async def analyze(
             # lookup failed): backfill the name/icon once, cheaply, without re-running
             # the whole NLP/LLM pipeline.
             if not cached.name:
-                country = cached.collected.countries[0] if cached.collected.countries else "us"
-                meta = await fetch_app_meta(cached.app_id, country=country)
+                meta = await fetch_app_meta(cached.app_id)  # English-first (us → gb)
                 if meta.get("name"):
                     cached.name = meta.get("name")
                     cached.icon = meta.get("icon")
@@ -55,11 +54,10 @@ async def analyze(
 
     collected = await collect_reviews(app_id, region=region, limit=limit)
 
-    # Resolve the app's display name + icon (best-effort) while the heavy NLP/LLM
-    # analysis runs in a worker thread — the two overlap, so the lookup is ~free.
-    country = collected.meta.countries[0] if collected.meta.countries else "us"
+    # Resolve the app's display name + icon (best-effort, English-first) while the
+    # heavy NLP/LLM analysis runs in a worker thread — the two overlap, so it's ~free.
     analyze_task = asyncio.create_task(asyncio.to_thread(_analyze_reviews, collected.reviews))
-    meta = await fetch_app_meta(collected.meta.app_id, country=country)
+    meta = await fetch_app_meta(collected.meta.app_id)
     metrics, insights = await analyze_task
 
     analysis = AnalysisResult(
