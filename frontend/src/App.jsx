@@ -496,6 +496,16 @@ const COUNTRY_NAMES = {
 const countryName = (c) => COUNTRY_NAMES[String(c || '').toLowerCase()] || String(c || '').toUpperCase();
 const countryList = (arr) => (arr && arr.length ? arr.map(countryName).join(', ') : '—');
 
+// Prettify a trend bucket label (daily YYYY-MM-DD / weekly YYYY-Www / monthly YYYY-MM)
+// for the x-axis legend.
+const fmtBucket = (b) => {
+  if (!b) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(b)) return new Date(b + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (/^\d{4}-W\d+$/.test(b)) return b.replace('-W', ' W');
+  if (/^\d{4}-\d{2}$/.test(b)) return new Date(b + '-01T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return b;
+};
+
 function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAnalyze }) {
   const cardHover = "border:1px solid rgba(128,82,255,0.6)";
 
@@ -555,6 +565,10 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAna
         ? `0,${Math.round(yOf(trendArr[0].average))} 720,${Math.round(yOf(trendArr[0].average))}`
         : trendArr.map((t, i) => `${Math.round((i / (trendArr.length - 1)) * 720)},${Math.round(yOf(t.average))}`).join(' '))
     : '0,128 65,140 131,118 196,150 262,110 327,96 393,108 458,82 524,90 589,64 655,72 720,52';
+  // x-axis legend: first / middle / last time bucket (empty for the demo fallback).
+  const trendStart = trendArr ? fmtBucket(trendArr[0].month) : '';
+  const trendEnd = trendArr ? fmtBucket(trendArr[trendArr.length - 1].month) : '';
+  const trendMid = trendArr && trendArr.length > 2 ? fmtBucket(trendArr[Math.floor((trendArr.length - 1) / 2)].month) : '';
   const versionBarsD = m.by_version && m.by_version.length
     ? m.by_version.slice(0, 6).map((v) => [Math.round((v.average / 5) * 90) + 'px', v.version])
     : versionBars;
@@ -658,13 +672,30 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAna
           <span style={s("font-size:12px;color:#9a9a9a")}>rating trend · by app version</span>
         </div>
         <div style={s("display:flex;gap:30px;align-items:stretch;flex-wrap:wrap")}>
-          <svg viewBox="0 0 720 200" preserveAspectRatio="none" style={{ flex: 1, minWidth: '320px', height: '200px' }}>
-            <line x1="0" y1="40" x2="720" y2="40" stroke="#ffffff" strokeOpacity="0.07" />
-            <line x1="0" y1="90" x2="720" y2="90" stroke="#ffffff" strokeOpacity="0.07" />
-            <line x1="0" y1="140" x2="720" y2="140" stroke="#ffffff" strokeOpacity="0.07" />
-            <line x1="0" y1="190" x2="720" y2="190" stroke="#ffffff" strokeOpacity="0.07" />
-            <polyline ref={lineRef} points={trendPts} fill="none" stroke="#8052ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <div style={s("flex:1;min-width:320px;display:flex;flex-direction:column;gap:8px")}>
+            <div style={s("display:flex;gap:8px")}>
+              {/* y-axis: rating 5 → 1, aligned to the gridlines */}
+              <div style={{ position: 'relative', width: '18px', height: '200px', flexShrink: 0 }}>
+                {[['5', 40], ['4', 77.5], ['3', 115], ['2', 152.5], ['1', 190]].map(([lab, y]) => (
+                  <span key={lab} style={{ position: 'absolute', right: 0, top: y + 'px', transform: 'translateY(-50%)', fontSize: '10px', color: '#9a9a9a' }}>{lab}</span>
+                ))}
+              </div>
+              <svg viewBox="0 0 720 200" preserveAspectRatio="none" style={{ flex: 1, minWidth: 0, height: '200px' }}>
+                <line x1="0" y1="40" x2="720" y2="40" stroke="#ffffff" strokeOpacity="0.07" />
+                <line x1="0" y1="77.5" x2="720" y2="77.5" stroke="#ffffff" strokeOpacity="0.07" />
+                <line x1="0" y1="115" x2="720" y2="115" stroke="#ffffff" strokeOpacity="0.07" />
+                <line x1="0" y1="152.5" x2="720" y2="152.5" stroke="#ffffff" strokeOpacity="0.07" />
+                <line x1="0" y1="190" x2="720" y2="190" stroke="#ffffff" strokeOpacity="0.07" />
+                <polyline ref={lineRef} points={trendPts} fill="none" stroke="#8052ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            {/* x-axis: time range */}
+            <div style={s("display:flex;justify-content:space-between;padding-left:26px;font-size:10px;color:#9a9a9a;letter-spacing:0.04em")}>
+              <span>{trendStart}</span>
+              <span>{trendMid}</span>
+              <span>{trendEnd}</span>
+            </div>
+          </div>
           <div style={s("display:flex;flex-direction:column;gap:10px;min-width:160px;justify-content:center")}>
             <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Rating by version</span>
             <div style={s("display:flex;align-items:flex-end;gap:10px;height:90px")}>
