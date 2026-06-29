@@ -622,9 +622,9 @@ function Dashboard({ nav, lineRef, openDownload, analysis, appId, onTheme, onAna
           <span style={s("font-size:12px;color:#bdbdbd")}>{countryList(col.countries)}</span>
         </Box>
         <Box data-reveal="" css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:12px" hover={cardHover}>
-          <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Positive</span>
+          <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Positive ratings</span>
           <span data-count={positiveBox + '%'} style={s("font-weight:300;font-size:48px;line-height:1;letter-spacing:-0.02em;color:#8052ff")}>{positiveBox}%</span>
-          <span style={s("font-size:12px;color:#bdbdbd")}>4–5★</span>
+          <span style={s("font-size:12px;color:#bdbdbd")}>rated 4–5★</span>
         </Box>
         <Box data-reveal="" css="border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:24px;background:#000;display:flex;flex-direction:column;gap:12px" hover={cardHover}>
           <span style={s("font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#9a9a9a")}>Net sentiment</span>
