@@ -11,11 +11,11 @@ import { analyze as apiAnalyze, getReviews, downloadReviews, verifyToken, setTok
 
 const REDUCE = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// External links surfaced on the About page. The demo video + sample report are
-// pending deliverables — they point at the repo until their real URLs exist.
+// External links surfaced on the About page. The demo video is a pending deliverable
+// (points at the repo until its real URL exists); the "sample report" is the live
+// Compare page (Nebula vs Co-Star), linked in-app rather than as a file.
 const REPO_URL = 'https://github.com/itillushka/apple-review-analyzer';
 const DEMO_VIDEO_URL = REPO_URL;
-const SAMPLE_REPORT_URL = REPO_URL;
 
 const starPath = 'M12 2 L15 9 L22 9.3 L16.5 13.8 L18.5 21 L12 17 L5.5 21 L7.5 13.8 L2 9.3 L9 9 Z';
 const StarsFull = () => (
@@ -289,7 +289,7 @@ export default function App() {
             />
           )}
           {view === 'compare' && <Compare />}
-          {view === 'about' && <About />}
+          {view === 'about' && <About nav={nav} />}
           {view === 'apidocs' && (
             <ApiDocs
               activeEndpoint={activeEndpoint} scrollToEp={scrollToEp}
@@ -976,7 +976,9 @@ const approachCards = [
   ['Design', 'The Dala system — particle cosmos on a void, one violet action color, zero shadows.'],
 ];
 
-function About() {
+const aboutBtn = "border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 26px;text-decoration:none;cursor:pointer";
+
+function About({ nav }) {
   return (
     <div style={s("max-width:1200px;margin:0 auto;padding:60px 24px 96px;display:flex;flex-direction:column;gap:60px")}>
       <section data-reveal="" style={s("display:flex;flex-direction:column;gap:18px")}>
@@ -1021,13 +1023,10 @@ function About() {
       </section>
 
       <section data-reveal="" style={s("display:flex;gap:14px;flex-wrap:wrap")}>
-        {[
-          { label: 'GitHub ↗', href: REPO_URL },
-          { label: 'Demo video ↗', href: DEMO_VIDEO_URL },
-          { label: 'Sample report ↗', href: SAMPLE_REPORT_URL },
-        ].map(({ label, href }) => (
-          <Box key={label} as="a" href={href} target="_blank" rel="noopener noreferrer" css="border:1px solid #ffffff;border-radius:24px;color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:14px 26px;text-decoration:none" hover="background:rgba(255,255,255,0.06)">{label}</Box>
-        ))}
+        <Box as="a" href={REPO_URL} target="_blank" rel="noopener noreferrer" css={aboutBtn} hover="background:rgba(255,255,255,0.06)">GitHub ↗</Box>
+        <Box as="a" href={DEMO_VIDEO_URL} target="_blank" rel="noopener noreferrer" css={aboutBtn} hover="background:rgba(255,255,255,0.06)">Demo video ↗</Box>
+        {/* The comparative "report" is the live Compare page (Nebula vs Co-Star). */}
+        <Box as="a" href="#" onClick={nav('compare')} css={aboutBtn} hover="background:rgba(255,255,255,0.06)">Sample report →</Box>
       </section>
     </div>
   );

@@ -1,10 +1,13 @@
 # Review Atlas — Apple Store Review Analysis
 
 Collect user reviews from the Apple App Store for any app, process them, and turn them
-into metrics and AI-generated insights — exposed through a REST API (and a web dashboard).
+into metrics and AI-generated insights — exposed through a REST API and a web dashboard.
 
-> Built as a technical assignment for **OBRIO** (Genesis). The backend is feature-complete;
-> the web frontend is in progress.
+> Built as a technical assignment for **OBRIO** (Genesis).
+
+**Live demo:** https://obrio.teriffic.xyz — the comparative report (Nebula vs Co-Star)
+is the **Compare** page; pick any app by name on the home page to run a fresh analysis.
+(The demo is access-gated; the token is shared with reviewers separately.)
 
 ![Architecture](docs/diagrams/architecture.png)
 
